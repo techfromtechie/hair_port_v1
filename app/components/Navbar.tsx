@@ -14,7 +14,7 @@ export default function Navbar() {
           </span>
 
           <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
-            Royal <span className="text-[#f5b942]">Salon</span>
+            HairPort <span className="text-[#f5b942]">Salon</span>
           </h1>
         </Link>
 
@@ -41,53 +41,59 @@ export default function Navbar() {
 
 
           {/* ================= TRANSACTION ================= */}
-          <div className="group relative">
+          {/* ================= TRANSACTION ================= */}
+<div className="group relative">
 
-            <button
-              type="button"
-              className="flex items-center gap-2 text-lg font-medium text-white transition hover:text-[#f5b942]"
-            >
-              Transaction
-              <span className="text-xs">
-                ▼
-              </span>
-            </button>
+  {/* Transaction Menu */}
+  <button
+    type="button"
+    className="flex items-center gap-2 text-lg font-medium text-white transition hover:text-[#f5b942]"
+  >
+    Transaction
+    <span className="text-xs">
+      ▼
+    </span>
+  </button>
 
-            {/* Transaction Dropdown */}
-            <div
-              className="
-                invisible absolute left-0 top-full z-50 mt-3
-                w-60 translate-y-2 rounded-xl bg-white p-2
-                opacity-0 shadow-xl
-                transition-all duration-200
-                group-hover:visible
-                group-hover:translate-y-0
-                group-hover:opacity-100
-              "
-            >
-              <button
-                type="button"
-                className="
-                  block w-full rounded-lg px-4 py-3
-                  text-left text-base font-medium text-gray-700
-                  transition hover:bg-gray-100
-                "
-              >
-                Add Transaction
-              </button>
+  {/* Transaction Dropdown */}
+  <div
+    className="
+      invisible absolute left-0 top-full z-50 mt-3
+      w-60 translate-y-2 rounded-xl bg-white p-2
+      opacity-0 shadow-xl
+      transition-all duration-200
+      group-hover:visible
+      group-hover:translate-y-0
+      group-hover:opacity-100
+    "
+  >
 
-              <button
-                type="button"
-                className="
-                  block w-full rounded-lg px-4 py-3
-                  text-left text-base font-medium text-gray-700
-                  transition hover:bg-gray-100
-                "
-              >
-                Transaction
-              </button>
-            </div>
-          </div>
+    {/* Add Transaction */}
+    <Link
+      href="/transaction/add"
+      className="
+        block w-full rounded-lg px-4 py-3
+        text-left text-base font-medium text-gray-700
+        transition hover:bg-gray-100
+      "
+    >
+      Add Transaction
+    </Link>
+
+    {/* Transaction */}
+    <Link
+      href="/transaction"
+      className="
+        block w-full rounded-lg px-4 py-3
+        text-left text-base font-medium text-gray-700
+        transition hover:bg-gray-100
+      "
+    >
+      Transaction Report
+    </Link>
+
+  </div>
+</div>
 
 
           {/* ================= ADVANCE ================= */}

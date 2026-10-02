@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Navbar from "./components/Navbar";
 
 const services = [
   {
@@ -45,199 +46,14 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white text-[#17191d]">
 
-      {/* =====================================================
-          NAVBAR
-          Same style as Management page
-      ====================================================== */}
-      <div className="relative h-[100px] bg-[#17191d]">
-
-        <nav className="absolute left-0 top-0 z-50 w-full">
-
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-10">
-
-            {/* Logo */}
-            <Link
-              href="/"
-              className="flex items-center gap-3"
-            >
-              <span className="text-3xl text-[#f5b942]">
-                ✂
-              </span>
-
-              <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
-                Royal{" "}
-                <span className="text-[#f5b942]">
-                  Salon
-                </span>
-              </h1>
-            </Link>
-
-
-            {/* Navigation */}
-            <div className="hidden items-center gap-8 md:flex">
-
-              {/* Home */}
-              <Link
-                href="/"
-                className="text-lg font-medium text-white transition hover:text-[#f5b942]"
-              >
-                Home
-              </Link>
-
-
-              {/* Management */}
-              <Link
-                href="/management"
-                className="text-lg font-medium text-white transition hover:text-[#f5b942]"
-              >
-                Management
-              </Link>
-
-
-              {/* Transaction */}
-              <div className="group relative">
-
-                <button
-                  type="button"
-                  className="flex items-center gap-2 text-lg font-medium text-white transition hover:text-[#f5b942]"
-                >
-                  Transaction
-
-                  <span className="text-xs">
-                    ▼
-                  </span>
-                </button>
-
-
-                {/* Transaction Dropdown */}
-                <div className="invisible absolute left-1/2 top-full z-50 mt-3 w-60 -translate-x-1/2 translate-y-2 rounded-xl bg-white p-2 opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
-
-                  <button
-                    type="button"
-                    className="block w-full rounded-lg px-4 py-3 text-left text-base font-medium text-gray-700 transition hover:bg-gray-100"
-                  >
-                    Add Transaction
-                  </button>
-
-                  <button
-                    type="button"
-                    className="block w-full rounded-lg px-4 py-3 text-left text-base font-medium text-gray-700 transition hover:bg-gray-100"
-                  >
-                    Transaction
-                  </button>
-
-                </div>
-
-              </div>
-
-
-              {/* Advance */}
-              <div className="group relative">
-
-                <button
-                  type="button"
-                  className="flex items-center gap-2 text-lg font-medium text-white transition hover:text-[#f5b942]"
-                >
-                  Advance
-
-                  <span className="text-xs">
-                    ▼
-                  </span>
-                </button>
-
-
-                {/* Advance Dropdown */}
-                <div className="invisible absolute left-1/2 top-full z-50 mt-3 w-64 -translate-x-1/2 translate-y-2 rounded-xl bg-white p-2 opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
-
-                  <button
-                    type="button"
-                    className="block w-full rounded-lg px-4 py-3 text-left text-base font-medium text-gray-700 transition hover:bg-gray-100"
-                  >
-                    Add Advance
-                  </button>
-
-                  <button
-                    type="button"
-                    className="block w-full rounded-lg px-4 py-3 text-left text-base font-medium text-gray-700 transition hover:bg-gray-100"
-                  >
-                    Advance Payment Report
-                  </button>
-
-                </div>
-
-              </div>
-
-
-              {/* Leave */}
-              <div className="group relative">
-
-                <button
-                  type="button"
-                  className="flex items-center gap-2 text-lg font-medium text-white transition hover:text-[#f5b942]"
-                >
-                  Leave
-
-                  <span className="text-xs">
-                    ▼
-                  </span>
-                </button>
-
-
-                {/* Leave Dropdown */}
-                <div className="invisible absolute left-1/2 top-full z-50 mt-3 w-56 -translate-x-1/2 translate-y-2 rounded-xl bg-white p-2 opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
-
-                  <button
-                    type="button"
-                    className="block w-full rounded-lg px-4 py-3 text-left text-base font-medium text-gray-700 transition hover:bg-gray-100"
-                  >
-                    Add Leave
-                  </button>
-
-                  <button
-                    type="button"
-                    className="block w-full rounded-lg px-4 py-3 text-left text-base font-medium text-gray-700 transition hover:bg-gray-100"
-                  >
-                    Leave Report
-                  </button>
-
-                </div>
-
-              </div>
-
-
-              {/* Logout */}
-              <button
-                type="button"
-                className="text-lg font-medium text-white transition hover:text-red-400"
-              >
-                Logout
-              </button>
-
-            </div>
-
-
-            {/* User */}
-            <div className="flex items-center gap-3 rounded-full border border-white/20 bg-black/40 px-5 py-3 backdrop-blur-md">
-
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-bold text-gray-800">
-                {userName.charAt(0)}
-              </div>
-
-              <span className="hidden text-lg font-medium text-white sm:block">
-                {userName}
-              </span>
-
-              <span className="text-xs text-white">
-                ▼
-              </span>
-
-            </div>
-
-          </div>
-
-        </nav>
-
-      </div>
+      <div className="relative bg-[#17191d]">
+     
+             <Navbar />
+     
+             <div className="h-24" />
+     
+           </div>
+     
 
 
       {/* =====================================================
@@ -248,7 +64,7 @@ export default function Home() {
         {/* Hero Background */}
         <img
           src="https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=2000&q=90"
-          alt="Royal Salon"
+          alt="HairPort Salon"
           className="absolute inset-0 h-full w-full object-cover"
         />
 
@@ -271,7 +87,7 @@ export default function Home() {
 
 
             <h2 className="text-6xl font-bold leading-[1.05] text-white md:text-8xl">
-              Royal{" "}
+              HairPort{" "}
               <span className="text-[#f5b942]">
                 Salon
               </span>
@@ -371,7 +187,7 @@ export default function Home() {
 
             <img
               src="https://images.unsplash.com/photo-1633681926022-84c23e8cb2d6?auto=format&fit=crop&w=1200&q=90"
-              alt="Inside Royal Salon"
+              alt="Inside HairPort Salon"
               className="h-[420px] w-full object-cover md:h-[500px]"
             />
 
@@ -387,12 +203,12 @@ export default function Home() {
 
 
             <h2 className="mt-4 text-4xl font-bold leading-tight md:text-5xl">
-              About Royal Salon
+              About HairPort Salon
             </h2>
 
 
             <p className="mt-7 text-lg leading-8 text-gray-600">
-              Royal Salon is dedicated to providing high-quality
+              HairPort Salon is dedicated to providing high-quality
               beauty and grooming services in a relaxing and
               comfortable environment.
             </p>
@@ -485,7 +301,7 @@ export default function Home() {
       <footer className="bg-[#17191d] px-6 py-8 text-center">
 
         <p className="text-sm text-gray-400">
-          © 2026 Royal Salon. All rights reserved.
+          © 2026 HairPort Salon. All rights reserved.
         </p>
 
       </footer>

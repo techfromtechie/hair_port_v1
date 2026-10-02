@@ -96,105 +96,63 @@ export default function Navbar() {
 </div>
 
 
-          {/* ================= ADVANCE ================= */}
-          <div className="group relative">
+        
+         {/* Advance */}
+<div className="group relative">
+  <button
+    type="button"
+    className="flex items-center gap-2 text-lg font-medium text-white transition hover:text-[#f5b942]"
+  >
+    Advance <span className="text-xs">▼</span>
+  </button>
 
-            <button
-              type="button"
-              className="flex items-center gap-2 text-lg font-medium text-white transition hover:text-[#f5b942]"
-            >
-              Advance
-              <span className="text-xs">
-                ▼
-              </span>
-            </button>
+  <div className="invisible absolute left-0 top-full z-50 mt-3 w-64 translate-y-2 rounded-xl bg-white p-2 opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
 
-            {/* Advance Dropdown */}
-            <div
-              className="
-                invisible absolute left-0 top-full z-50 mt-3
-                w-64 translate-y-2 rounded-xl bg-white p-2
-                opacity-0 shadow-xl
-                transition-all duration-200
-                group-hover:visible
-                group-hover:translate-y-0
-                group-hover:opacity-100
-              "
-            >
-              <button
-                type="button"
-                className="
-                  block w-full rounded-lg px-4 py-3
-                  text-left text-base font-medium text-gray-700
-                  transition hover:bg-gray-100
-                "
-              >
-                Add Advance
-              </button>
+    {/* Add Advance */}
+    <Link
+      href="/advance/add"
+      className="block w-full rounded-lg px-4 py-3 text-left text-base font-medium text-gray-700 transition hover:bg-gray-100"
+    >
+      Add Advance
+    </Link>
 
-              <button
-                type="button"
-                className="
-                  block w-full rounded-lg px-4 py-3
-                  text-left text-base font-medium text-gray-700
-                  transition hover:bg-gray-100
-                "
-              >
-                Advance Payment Report
-              </button>
-            </div>
-          </div>
+    {/* Advance Payment Report */}
+    <Link
+      href="/advance"
+      className="block w-full rounded-lg px-4 py-3 text-left text-base font-medium text-gray-700 transition hover:bg-gray-100"
+    >
+      Advance Payment Report
+    </Link>
+
+  </div>
+</div>
 
 
-          {/* ================= LEAVE ================= */}
-          <div className="group relative">
+        {/* Leave */}
+<div className="group relative">
+  <button
+    type="button"
+    className="flex items-center gap-2 text-lg font-medium text-white transition hover:text-[#f5b942]"
+  >
+    Leave <span className="text-xs">▼</span>
+  </button>
 
-            <button
-              type="button"
-              className="flex items-center gap-2 text-lg font-medium text-white transition hover:text-[#f5b942]"
-            >
-              Leave
-              <span className="text-xs">
-                ▼
-              </span>
-            </button>
+  <div className="invisible absolute left-0 top-full z-50 mt-3 w-56 translate-y-2 rounded-xl bg-white p-2 opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+    <Link
+      href="/leave/add"
+      className="block w-full rounded-lg px-4 py-3 text-left text-base font-medium text-gray-700 transition hover:bg-gray-100"
+    >
+      Add Leave
+    </Link>
 
-            {/* Leave Dropdown */}
-            <div
-              className="
-                invisible absolute left-0 top-full z-50 mt-3
-                w-56 translate-y-2 rounded-xl bg-white p-2
-                opacity-0 shadow-xl
-                transition-all duration-200
-                group-hover:visible
-                group-hover:translate-y-0
-                group-hover:opacity-100
-              "
-            >
-              <button
-                type="button"
-                className="
-                  block w-full rounded-lg px-4 py-3
-                  text-left text-base font-medium text-gray-700
-                  transition hover:bg-gray-100
-                "
-              >
-                Add Leave
-              </button>
-
-              <button
-                type="button"
-                className="
-                  block w-full rounded-lg px-4 py-3
-                  text-left text-base font-medium text-gray-700
-                  transition hover:bg-gray-100
-                "
-              >
-                Leave Report
-              </button>
-            </div>
-          </div>
-
+    <Link
+      href="/leave"
+      className="block w-full rounded-lg px-4 py-3 text-left text-base font-medium text-gray-700 transition hover:bg-gray-100"
+    >
+      Leave Report
+    </Link>
+  </div>
+</div>
         </div>
 
 

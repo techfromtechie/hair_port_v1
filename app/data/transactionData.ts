@@ -4,6 +4,16 @@ export type Employee = {
   branch: string;
 };
 
+export type Advance = {
+  id: number;
+  employee: string;
+  employeeNumber: string;
+  branch: string;
+  date: string;
+  cash: number;
+  online: number;
+};
+
 export type Transaction = {
   id: number;
   employee: string;

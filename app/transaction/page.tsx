@@ -376,74 +376,43 @@ const today = new Date().toISOString().split("T")[0];
 
           </div>
 
+
           {/* ================= SELECTED EMPLOYEE ================= */}
-          {reportType === "employee" && selectedEmployeeData && (
-            <div className="mb-6 rounded-2xl border border-[#f5b942]/40 bg-[#fff9eb] p-5">
+{reportType === "employee" && selectedEmployeeData && (
+  <div className="mb-6 rounded-2xl border border-[#f5b942]/40 bg-[#fff9eb] p-5">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      
+      <div>
+        <p className="text-sm text-gray-500">
+          Employee Transaction Report
+        </p>
 
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="mt-1 text-2xl font-bold text-gray-900">
+          {selectedEmployeeData.name}
+        </h2>
 
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Employee Transaction Report
-                  </p>
+        <p className="mt-1 text-sm text-gray-600">
+          Employee No:{" "}
+          <span className="font-semibold">
+            {selectedEmployeeData.employeeNumber}
+          </span>
+        </p>
+      </div>
 
-                  <h2 className="mt-1 text-2xl font-bold text-gray-900">
-                    {selectedEmployeeData.name}
-                  </h2>
+      {/* TRANSACTION COUNT */}
+      <div className="rounded-xl bg-white px-6 py-4 text-center shadow-sm">
+        <p className="text-xs uppercase tracking-wide text-gray-500">
+          Transactions
+        </p>
 
-                  <p className="mt-1 text-sm text-gray-600">
-                    Employee No:{" "}
-                    <span className="font-semibold">
-                      {selectedEmployeeData.employeeNumber}
-                    </span>
-                  </p>
-                </div>
+        <p className="mt-1 text-xl font-bold text-gray-900">
+          {filteredTransactions.length}
+        </p>
+      </div>
 
-                <div className="rounded-xl bg-white px-5 py-3 shadow-sm">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">
-                    Transactions
-                  </p>
-
-                  <p className="mt-1 text-xl font-bold text-gray-900">
-                    {filteredTransactions.length}
-                  </p>
-                </div>
-
-              </div>
-
-            </div>
-          )}
-
-          {/* ================= SELECTED BRANCH ================= */}
-          {reportType === "branch" && selectedBranch && (
-            <div className="mb-6 rounded-2xl border border-[#f5b942]/40 bg-[#fff9eb] p-5">
-
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Branch Transaction Report
-                  </p>
-
-                  <h2 className="mt-1 text-2xl font-bold text-gray-900">
-                    {selectedBranch}
-                  </h2>
-                </div>
-
-                <div className="rounded-xl bg-white px-6 py-4 text-center shadow-sm">
-  <p className="text-xs uppercase tracking-wide text-gray-500">
-    Transactions
-  </p>
-
-  <p className="mt-1 mx-auto text-xl font-bold text-gray-900">
-    {filteredTransactions.length}
-  </p>
-</div>
-
-              </div>
-
-            </div>
-          )}
+    </div>
+  </div>
+)}
 
           {/* ================= TRANSACTION TABLE ================= */}
           <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -621,7 +590,7 @@ const today = new Date().toISOString().split("T")[0];
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
 
                 <p className="text-sm font-medium text-gray-500">
-                  Total Cash
+                  Cash Payment
                 </p>
 
                 <p className="mt-2 text-2xl font-bold text-gray-900">
@@ -634,7 +603,7 @@ const today = new Date().toISOString().split("T")[0];
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
 
                 <p className="text-sm font-medium text-gray-500">
-                  Total Online
+                  Online Payment
                 </p>
 
                 <p className="mt-2 text-2xl font-bold text-gray-900">

@@ -6,6 +6,8 @@ type FormInputProps = {
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   readOnly?: boolean;
   required?: boolean;
+  min?: string;
+  max?: string;
 };
 
 export default function FormInput({
@@ -16,6 +18,8 @@ export default function FormInput({
   onChange,
   readOnly = false,
   required = false,
+  min,
+  max,
 }: FormInputProps) {
   return (
     <div>
@@ -30,6 +34,8 @@ export default function FormInput({
         placeholder={placeholder}
         readOnly={readOnly}
         required={required}
+        min={min}
+        max={max}
         className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
       />
     </div>

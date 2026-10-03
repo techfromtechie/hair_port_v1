@@ -8,6 +8,16 @@ import {
   branches,
   advances,
 } from "@/app/data/advanceData";
+import ExportTable from "../components/ExportTable";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 export default function AdvancePaymentReportPage() {
   const [reportType, setReportType] = useState<
@@ -89,6 +99,52 @@ export default function AdvancePaymentReportPage() {
   );
 
   const totalAdvance = totalCash + totalOnline;
+
+  // =========================
+// BRANCH EMPLOYEE ADVANCE CHART
+// =========================
+const branchEmployeeAdvanceData = useMemo(() => {
+  if (reportType !== "branch" || !selectedBranch) {
+    return [];
+  }
+
+  const employeeMap: Record<
+    string,
+    {
+      employee: string;
+      employeeNumber: string;
+      totalAdvance: number;
+    }
+  > = {};
+
+  filteredAdvances.forEach((advance) => {
+    if (!employeeMap[advance.employeeNumber]) {
+      employeeMap[advance.employeeNumber] = {
+        employee: advance.employee,
+        employeeNumber: advance.employeeNumber,
+        totalAdvance: 0,
+      };
+    }
+
+    employeeMap[advance.employeeNumber].totalAdvance +=
+      advance.cash + advance.online;
+  });
+
+  return Object.values(employeeMap);
+}, [
+  filteredAdvances,
+  reportType,
+  selectedBranch,
+]);
+
+  const advanceExportData = filteredAdvances.map((advance) => ({
+  employee: advance.employee,
+  employeeNumber: advance.employeeNumber,
+  date: advance.date,
+  cash: advance.cash,
+  online: advance.online,
+  total: advance.cash + advance.online,
+}));
 
   // =========================
   // SELECTED EMPLOYEE
@@ -473,24 +529,183 @@ export default function AdvancePaymentReportPage() {
             </div>
           )}
 
+{/* ================= BRANCH EMPLOYEE ADVANCE CHART ================= */}
+{reportType === "branch" &&
+  selectedBranch &&
+  isReportReady && (
+    <div className="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+
+      <div className="border-b border-gray-200 px-6 py-5">
+        <h2 className="text-lg font-bold text-gray-900">
+          Employee Wise Advance Payment
+        </h2>
+
+        <p className="mt-1 text-sm text-gray-500">
+          Total advance taken by{" "}
+          <span className="font-semibold text-gray-700">
+            {selectedBranch}
+          </span>{" "}
+          branch
+        </p>
+      </div>
+
+      <div className="px-4 py-6 sm:px-6">
+        {branchEmployeeAdvanceData.length > 0 ? (
+          <div className="max-h-[500px] overflow-y-auto overflow-x-auto pr-2">
+            <div
+              style={{
+                height: "450px",
+                minWidth: `${Math.max(
+                  700,
+                  branchEmployeeAdvanceData.length * 90
+                )}px`,
+              }}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={branchEmployeeAdvanceData}
+                  margin={{
+                    top: 10,
+                    right: 30,
+                    left: 10,
+                    bottom: 70,
+                  }}
+                  barCategoryGap="20%"
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#e5e7eb"
+                  />
+
+                  <XAxis
+                    dataKey="employee"
+                    tick={{
+                      fontSize: 12,
+                      fill: "#374151",
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                    angle={-35}
+                    textAnchor="end"
+                    height={80}
+                  />
+
+                  <YAxis
+                    tick={{
+                      fontSize: 12,
+                      fill: "#6b7280",
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(value) =>
+                      `₹${Number(value).toLocaleString("en-IN")}`
+                    }
+                  />
+
+                  <Tooltip
+                    cursor={{ fill: "#f9fafb" }}
+                    contentStyle={{
+                      borderRadius: "10px",
+                      border: "1px solid #e5e7eb",
+                      boxShadow:
+                        "0 4px 12px rgba(0,0,0,0.08)",
+                    }}
+                    formatter={(value) => [
+                      `₹${Number(value).toLocaleString("en-IN")}`,
+                      "Total Advance",
+                    ]}
+                    labelFormatter={(label) =>
+                      `Employee: ${label}`
+                    }
+                  />
+
+                  <Bar
+                    dataKey="totalAdvance"
+                    name="Total Advance"
+                    fill="#f5b942"
+                    radius={[8, 8, 0, 0]}
+                    barSize={38}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        ) : (
+          <div className="flex h-[300px] items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50">
+            <div className="text-center">
+              <div className="text-3xl">📊</div>
+
+              <p className="mt-3 font-semibold text-gray-700">
+                No Advance Data
+              </p>
+
+              <p className="mt-1 text-sm text-gray-500">
+                No advance payments found for the selected
+                branch and date range.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )}
           {/* ================= ADVANCE TABLE ================= */}
           <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
 
-            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-5">
+            <div className="flex flex-col gap-4 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <h2 className="text-lg font-bold text-gray-900">
+      Advance Payment History
+    </h2>
 
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  Advance Payment History
-                </h2>
+    <p className="mt-1 text-sm text-gray-500">
+      {filteredAdvances.length} advance payment
+      {filteredAdvances.length !== 1 ? "s" : ""} found
+    </p>
+  </div>
 
-                <p className="mt-1 text-sm text-gray-500">
-                  {filteredAdvances.length} advance payment
-                  {filteredAdvances.length !== 1 ? "s" : ""} found
-                </p>
-              </div>
-
-            </div>
-
+  {/* Export */}
+  <ExportTable
+    data={advanceExportData}
+    columns={[
+      ...(reportType === "branch"
+        ? [
+            {
+              header: "Employee",
+              key: "employee" as keyof (typeof advanceExportData)[number],
+            },
+            {
+              header: "Employee No",
+              key: "employeeNumber" as keyof (typeof advanceExportData)[number],
+            },
+          ]
+        : []),
+      {
+        header: "Date",
+        key: "date",
+      },
+      {
+        header: "Cash",
+        key: "cash",
+      },
+      {
+        header: "Online",
+        key: "online",
+      },
+      {
+        header: "Total",
+        key: "total",
+      },
+    ]}
+    fileName={
+      reportType === "employee"
+        ? "Employee-Advance-Payment-Report"
+        : "Branch-Advance-Payment-Report"
+    }
+    disabled={!isReportReady}
+  />
+</div>
             <div className="overflow-x-auto">
 
               <table className="w-full min-w-[700px]">

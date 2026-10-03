@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Navbar from "@/app/components/Navbar";
+import ExportTable from "@/app/components/ExportTable";
 import { employees, leaves } from "@/app/data/leaveData";
 
 export default function LeaveReportPage() {
@@ -30,6 +31,11 @@ export default function LeaveReportPage() {
       return employeeMatch && dateMatch;
     });
   }, [selectedEmployee, fromDate, toDate]);
+
+  const leaveExportData = filteredLeaves.map((leave) => ({
+  date: leave.date,
+  leaveType: leave.leaveType,
+}));
 
   const selectedEmployeeData = employees.find(
     (employee) => employee.employeeNumber === selectedEmployee
@@ -229,11 +235,39 @@ export default function LeaveReportPage() {
             !isInvalidDateRange && (
               <>
                 <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                  <div className="border-b border-gray-200 px-6 py-5">
-                    <h2 className="text-xl font-bold text-gray-900">
-                      Leave Details
-                    </h2>
-                  </div>
+                 <div className="flex flex-col gap-4 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <h2 className="text-xl font-bold text-gray-900">
+      Leave Details
+    </h2>
+
+    <p className="mt-1 text-sm text-gray-500">
+      {filteredLeaves.length} leave
+      {filteredLeaves.length !== 1 ? "s" : ""} found
+    </p>
+  </div>
+
+  <ExportTable
+    data={leaveExportData}
+    columns={[
+      {
+        header: "Date",
+        key: "date",
+      },
+      {
+        header: "Leave Type",
+        key: "leaveType",
+      },
+    ]}
+    fileName="Employee-Leave-Report"
+    disabled={
+      !selectedEmployee ||
+      !fromDate ||
+      !toDate ||
+      !!isInvalidDateRange
+    }
+  />
+</div>
 
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[600px]">

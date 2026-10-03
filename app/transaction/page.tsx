@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Navbar from "@/app/components/Navbar";
+import ExportTable from "@/app/components/ExportTable";
 import {
   employees,
   branches,
@@ -45,11 +46,11 @@ const today = new Date().toISOString().split("T")[0];
 
       // Branch Wise
       const matchesBranch =
-        reportType === "branch"
-          ? selectedBranch
-            ? transaction.branch === selectedBranch
-            : false
-          : true;
+  reportType === "branch"
+    ? selectedBranch
+      ? transaction.branch === selectedBranch
+      : true
+    : true;
 
       // Date range
       const matchesFromDate = transaction.date >= fromDate;
@@ -85,6 +86,31 @@ const today = new Date().toISOString().split("T")[0];
 
   const totalPayment = totalCash + totalOnline;
 
+  const transactionExportData = filteredTransactions.map(
+  (transaction) => ({
+    employee: transaction.employee,
+    employeeNumber: transaction.employeeNumber,
+    date: transaction.date,
+    cash: transaction.cash,
+    online: transaction.online,
+    total: transaction.cash + transaction.online,
+  })
+);
+
+const branchTotalEmployees = new Set(
+  filteredTransactions.map(
+    (transaction) => transaction.employeeNumber
+  )
+).size;
+
+const selectedPeriod =
+  fromDate && toDate
+    ? `${fromDate.split("-").reverse().join("/")} - ${toDate
+        .split("-")
+        .reverse()
+        .join("/")}`
+    : "Select Period";
+
   // =========================
   // SELECTED EMPLOYEE
   // =========================
@@ -99,14 +125,16 @@ const today = new Date().toISOString().split("T")[0];
     Boolean(fromDate && toDate && fromDate > toDate);
 
   const isReportReady =
-    Boolean(
-      fromDate &&
-        toDate &&
-        !isInvalidDateRange &&
-        (reportType === "employee"
+  Boolean(
+    fromDate &&
+      toDate &&
+      !isInvalidDateRange &&
+      (
+        reportType === "employee"
           ? selectedEmployee
-          : selectedBranch)
-    );
+          : true
+      )
+  );
 
   return (
     <main className="min-h-screen bg-[#f5f6f8]">
@@ -313,7 +341,7 @@ const today = new Date().toISOString().split("T")[0];
                     onChange={(e) => setSelectedBranch(e.target.value)}
                     className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
                   >
-                    <option value="">Select Branch</option>
+                    <option value="">All Branch</option>
 
                     {branches.map((branch) => (
                       <option key={branch} value={branch}>
@@ -414,21 +442,339 @@ const today = new Date().toISOString().split("T")[0];
   </div>
 )}
 
-          {/* ================= TRANSACTION TABLE ================= */}
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+{/* ================= BRANCH WISE DASHBOARD ================= */}
+{reportType === "branch" && isReportReady && (
+  <>
+    {/* Branch Report Summary Cards */}
+    <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
 
-            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-5">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  Transaction History
-                </h2>
+      {/* Total Employees */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-4">
 
-                <p className="mt-1 text-sm text-gray-500">
-                  {filteredTransactions.length} transaction
-                  {filteredTransactions.length !== 1 ? "s" : ""} found
-                </p>
-              </div>
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-blue-100 text-2xl">
+            👥
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-gray-500">
+              Total Employees
+            </p>
+
+            <p className="mt-1 text-2xl font-bold text-gray-900">
+              {branchTotalEmployees}
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Total Transactions */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-4">
+
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-green-100 text-2xl">
+            💼
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-gray-500">
+              Total Transactions
+            </p>
+
+            <p className="mt-1 text-2xl font-bold text-gray-900">
+              {filteredTransactions.length.toLocaleString("en-IN")}
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Total Sales */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-4">
+
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-purple-100 text-2xl">
+            ₹
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-gray-500">
+              Total Sales Amount
+            </p>
+
+            <p className="mt-1 text-2xl font-bold text-gray-900">
+              ₹{totalPayment.toLocaleString("en-IN")}
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Selected Period */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-4">
+
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-red-100 text-2xl">
+            📅
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-gray-500">
+              Selected Period
+            </p>
+
+            <p className="mt-1 text-sm font-bold text-gray-900">
+              {selectedPeriod}
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    {/* Branch Wise Employee Transactions */}
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+
+      {/* Table Header */}
+      <div className="flex flex-col gap-4 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+
+        <div>
+          <div className="flex items-center gap-3">
+
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-xl">
+              📊
             </div>
+
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                Branch Wise Employee Transactions
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Daily transaction details of employees by branch
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Export Dropdown */}
+        <ExportTable
+          data={transactionExportData}
+          columns={[
+            {
+              header: "Date",
+              key: "date",
+            },
+            {
+              header: "Branch",
+              key: "branch" as keyof (typeof transactionExportData)[number],
+            },
+            {
+              header: "Employee Name",
+              key: "employee",
+            },
+            {
+              header: "Employee No",
+              key: "employeeNumber",
+            },
+            {
+              header: "Cash",
+              key: "cash",
+            },
+            {
+              header: "Online",
+              key: "online",
+            },
+            {
+              header: "Total Amount",
+              key: "total",
+            },
+          ]}
+          fileName="Branch-Wise-Employee-Transactions"
+          disabled={!isReportReady || !filteredTransactions.length}
+        />
+
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto">
+
+        <table className="w-full min-w-[1000px]">
+
+          <thead>
+            <tr className="border-b border-gray-200 bg-gray-50 text-left">
+
+              <th className="px-6 py-4 text-sm font-semibold text-gray-700">
+                Date
+              </th>
+
+              <th className="px-6 py-4 text-sm font-semibold text-gray-700">
+                Branch
+              </th>
+
+              <th className="px-6 py-4 text-sm font-semibold text-gray-700">
+                Employee Name
+              </th>
+
+              <th className="px-6 py-4 text-sm font-semibold text-gray-700">
+                Employee No
+              </th>
+
+              <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">
+                Cash
+              </th>
+
+              <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">
+                Online
+              </th>
+
+              <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">
+                Total Amount
+              </th>
+
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {filteredTransactions.length > 0 ? (
+              filteredTransactions.map((transaction) => {
+
+                const total =
+                  transaction.cash + transaction.online;
+
+                return (
+                  <tr
+                    key={transaction.id}
+                    className="border-b border-gray-100 transition hover:bg-gray-50"
+                  >
+
+                    <td className="px-6 py-4 text-sm font-medium text-gray-800">
+                      {new Date(
+                        `${transaction.date}T00:00:00`
+                      ).toLocaleDateString("en-IN")}
+                    </td>
+
+                    <td className="px-6 py-4">
+
+                      <span className="inline-flex rounded-full bg-blue-100 px-4 py-1.5 text-xs font-semibold text-blue-700">
+                        {transaction.branch}
+                      </span>
+
+                    </td>
+
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-800">
+                      {transaction.employee}
+                    </td>
+
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {transaction.employeeNumber}
+                    </td>
+
+                    <td className="px-6 py-4 text-right text-sm text-gray-700">
+                      ₹{transaction.cash.toLocaleString("en-IN")}
+                    </td>
+
+                    <td className="px-6 py-4 text-right text-sm text-gray-700">
+                      ₹{transaction.online.toLocaleString("en-IN")}
+                    </td>
+
+                    <td className="px-6 py-4 text-right text-sm font-bold text-gray-900">
+                      ₹{total.toLocaleString("en-IN")}
+                    </td>
+
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td
+                  colSpan={7}
+                  className="px-6 py-12 text-center"
+                >
+                  <div className="text-3xl">
+                    📋
+                  </div>
+
+                  <p className="mt-3 font-semibold text-gray-700">
+                    No Transactions Found
+                  </p>
+
+                  <p className="mt-1 text-sm text-gray-500">
+                    No transactions are available for the selected filters.
+                  </p>
+                </td>
+              </tr>
+            )}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+  </>
+)}
+          {/* ================= TRANSACTION TABLE ================= */}
+         {reportType === "employee" && ( <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+
+            <div className="flex flex-col gap-4 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <h2 className="text-lg font-bold text-gray-900">
+      Transaction History
+    </h2>
+
+    <p className="mt-1 text-sm text-gray-500">
+      {filteredTransactions.length} transaction
+      {filteredTransactions.length !== 1 ? "s" : ""} found
+    </p>
+  </div>
+
+  <ExportTable
+    data={transactionExportData}
+    columns={[
+      ...(reportType === "branch"
+        ? [
+            {
+              header: "Employee",
+              key: "employee" as keyof (typeof transactionExportData)[number],
+            },
+            {
+              header: "Employee No",
+              key: "employeeNumber" as keyof (typeof transactionExportData)[number],
+            },
+          ]
+        : []),
+
+      {
+        header: "Date",
+        key: "date",
+      },
+      {
+        header: "Cash",
+        key: "cash",
+      },
+      {
+        header: "Online",
+        key: "online",
+      },
+      {
+        header: "Total",
+        key: "total",
+      },
+    ]}
+    fileName={
+      reportType === "employee"
+        ? "Employee-Transaction-Report"
+        : "Branch-Transaction-Report"
+    }
+    disabled={!isReportReady}
+  />
+</div>
 
             <div className="overflow-x-auto">
 
@@ -558,6 +904,7 @@ const today = new Date().toISOString().split("T")[0];
 
             </div>
           </div>
+         )}
 
           {/* ================= TOTAL CALCULATION ================= */}
           <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">

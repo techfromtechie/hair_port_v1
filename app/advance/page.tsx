@@ -12,6 +12,7 @@ import ExportTable from "../components/ExportTable";
 import {
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -29,62 +30,99 @@ export default function AdvancePaymentReportPage() {
 
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [search, setSearch] = useState("");
 
   // =========================
   // TODAY DATE
   // =========================
   const today = new Date().toISOString().split("T")[0];
 
+  const branchColorClasses = [
+  "bg-blue-100 text-blue-700",
+  "bg-green-100 text-green-700",
+  "bg-purple-100 text-purple-700",
+  "bg-orange-100 text-orange-700",
+  "bg-pink-100 text-pink-700",
+  "bg-cyan-100 text-cyan-700",
+  "bg-yellow-100 text-yellow-700",
+  "bg-indigo-100 text-indigo-700",
+];
+
+const getBranchColor = (branch: string) => {
+  const index = branches.indexOf(branch);
+
+  return branchColorClasses[
+    index >= 0 ? index % branchColorClasses.length : 0
+  ];
+};
+
   // =========================
   // FILTER ADVANCES
   // =========================
   const filteredAdvances = useMemo(() => {
-    // Date dono mandatory hain
-    if (!fromDate || !toDate) {
-      return [];
-    }
+  const searchText = search.trim().toLowerCase();
 
-    // To Date cannot be before From Date
-    if (fromDate > toDate) {
-      return [];
-    }
-
-    return advances.filter((advance) => {
-      // Employee Wise
+  const filtered = advances
+    .filter((advance) => {
       const matchesEmployee =
         reportType === "employee"
-          ? selectedEmployee
-            ? advance.employeeNumber === selectedEmployee
-            : false
+          ? !selectedEmployee ||
+            advance.employeeNumber === selectedEmployee
           : true;
 
-      // Branch Wise
       const matchesBranch =
         reportType === "branch"
-          ? selectedBranch
-            ? advance.branch === selectedBranch
-            : false
+          ? !selectedBranch ||
+            advance.branch === selectedBranch
           : true;
 
-      // Date Range
-      const matchesFromDate = advance.date >= fromDate;
-      const matchesToDate = advance.date <= toDate;
+      const matchesSearch =
+        !searchText ||
+        advance.employee.toLowerCase().includes(searchText) ||
+        advance.employeeNumber.toLowerCase().includes(searchText) ||
+        advance.branch.toLowerCase().includes(searchText) ||
+        String(advance.cash).includes(searchText) ||
+        String(advance.online).includes(searchText);
+
+      const matchesFromDate =
+        !fromDate || advance.date >= fromDate;
+
+      const matchesToDate =
+        !toDate || advance.date <= toDate;
 
       return (
         matchesEmployee &&
         matchesBranch &&
+        matchesSearch &&
         matchesFromDate &&
         matchesToDate
       );
-    });
-  }, [
-    reportType,
-    selectedEmployee,
-    selectedBranch,
-    fromDate,
-    toDate,
-  ]);
+    })
+    .sort((a, b) => b.date.localeCompare(a.date));
 
+  // No filters -> latest 10 payments
+  if (!searchText && !fromDate && !toDate) {
+    return filtered.slice(0, 10);
+  }
+
+  // Search/date filter -> show all matching records
+  return filtered;
+}, [
+  reportType,
+  selectedEmployee,
+  selectedBranch,
+  fromDate,
+  toDate,
+  search,
+]);
+
+const resetFilters = () => {
+  setSearch("");
+  setSelectedEmployee("");
+  setSelectedBranch("");
+  setFromDate("");
+  setToDate("");
+};
   // =========================
   // TOTAL CALCULATIONS
   // =========================
@@ -103,26 +141,68 @@ export default function AdvancePaymentReportPage() {
   // =========================
 // BRANCH EMPLOYEE ADVANCE CHART
 // =========================
+
 const branchEmployeeAdvanceData = useMemo(() => {
-  if (reportType !== "branch" || !selectedBranch) {
+  if (reportType !== "branch") {
     return [];
   }
 
+  // =========================
+  // ALL BRANCHES
+  // =========================
+  if (!selectedBranch) {
+    const branchMap: Record<
+      string,
+      {
+        branch: string;
+        totalAdvance: number;
+      }
+    > = {};
+
+    advances.forEach((advance) => {
+      if (!branchMap[advance.branch]) {
+        branchMap[advance.branch] = {
+          branch: advance.branch,
+          totalAdvance: 0,
+        };
+      }
+
+      branchMap[advance.branch].totalAdvance +=
+        advance.cash + advance.online;
+    });
+
+    return Object.values(branchMap);
+  }
+
+  // =========================
+  // SELECTED BRANCH - EMPLOYEE WISE
+  // =========================
   const employeeMap: Record<
     string,
     {
       employee: string;
       employeeNumber: string;
+      salary: number;
       totalAdvance: number;
+      isOverLimit: boolean;
     }
   > = {};
 
   filteredAdvances.forEach((advance) => {
     if (!employeeMap[advance.employeeNumber]) {
+      const employeeData = employees.find(
+        (employee) =>
+          employee.employeeNumber === advance.employeeNumber
+      );
+
+      const salary = employeeData?.salary ?? 0;
+
       employeeMap[advance.employeeNumber] = {
         employee: advance.employee,
         employeeNumber: advance.employeeNumber,
+        salary,
         totalAdvance: 0,
+        isOverLimit: false,
       };
     }
 
@@ -130,12 +210,23 @@ const branchEmployeeAdvanceData = useMemo(() => {
       advance.cash + advance.online;
   });
 
+  // Check 50% salary limit
+  Object.values(employeeMap).forEach((employee) => {
+    const fiftyPercentSalary = employee.salary * 0.5;
+
+    employee.isOverLimit =
+      employee.totalAdvance > fiftyPercentSalary;
+  });
+
   return Object.values(employeeMap);
 }, [
+  advances,
   filteredAdvances,
+  employees,
   reportType,
   selectedBranch,
 ]);
+
 
   const advanceExportData = filteredAdvances.map((advance) => ({
   employee: advance.employee,
@@ -160,14 +251,7 @@ const branchEmployeeAdvanceData = useMemo(() => {
   const isInvalidDateRange =
     Boolean(fromDate && toDate && fromDate > toDate);
 
-  const isReportReady = Boolean(
-    fromDate &&
-      toDate &&
-      !isInvalidDateRange &&
-      (reportType === "employee"
-        ? selectedEmployee
-        : selectedBranch)
-  );
+  const isReportReady = !isInvalidDateRange;
 
   return (
     <main className="min-h-screen bg-[#f5f6f8]">
@@ -436,23 +520,45 @@ const branchEmployeeAdvanceData = useMemo(() => {
               </div>
             )}
 
-            {/* ================= VALIDATION MESSAGE ================= */}
-            {!isReportReady && (
-              <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
-                <p className="text-sm font-medium text-blue-700">
+            {/* ================= SEARCH + RESET ================= */}
+<div className="mt-5 flex flex-col gap-3 md:flex-row md:items-end">
+  <div className="flex-1">
+    <label className="mb-2 block text-sm font-semibold text-gray-700">
+      Search
+    </label>
 
-                  {!fromDate || !toDate
-                    ? "Please select both From Date and To Date to view advance payments."
-                    : isInvalidDateRange
-                    ? "To Date cannot be earlier than From Date."
-                    : reportType === "employee"
-                    ? "Please select an employee to generate the report."
-                    : "Please select a branch to generate the report."}
+    <input
+      type="text"
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      placeholder="Search employee, employee number, branch or amount..."
+      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
+    />
+  </div>
 
-                </p>
-              </div>
-            )}
+  <button
+    type="button"
+    onClick={resetFilters}
+    className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+  >
+    Reset
+  </button>
+</div>
 
+           {/* ================= VALIDATION MESSAGE ================= */}
+{!isReportReady && (
+  <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+    <p className="text-sm font-medium text-blue-700">
+      {!fromDate || !toDate
+        ? "Please select both From Date and To Date to view advance payments."
+        : isInvalidDateRange
+        ? "To Date cannot be earlier than From Date."
+        : reportType === "employee"
+        ? "Please select an employee to generate the report."
+        : "Please select a branch to generate the report."}
+    </p>
+  </div>
+)}
           </div>
 
           {/* ================= SELECTED EMPLOYEE ================= */}
@@ -531,22 +637,23 @@ const branchEmployeeAdvanceData = useMemo(() => {
 
 {/* ================= BRANCH EMPLOYEE ADVANCE CHART ================= */}
 {reportType === "branch" &&
-  selectedBranch &&
-  isReportReady && (
+  
+  !isInvalidDateRange && (
     <div className="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
 
       <div className="border-b border-gray-200 px-6 py-5">
-        <h2 className="text-lg font-bold text-gray-900">
-          Employee Wise Advance Payment
-        </h2>
+       <h2 className="text-lg font-bold text-gray-900">
+  {selectedBranch
+    ? "Employee Wise Advance Payment"
+    : "Branch Wise Advance Payment"}
+</h2>
 
         <p className="mt-1 text-sm text-gray-500">
-          Total advance taken by{" "}
-          <span className="font-semibold text-gray-700">
-            {selectedBranch}
-          </span>{" "}
-          branch
-        </p>
+  {selectedBranch
+    ? `Total advance taken by employees of ${selectedBranch} branch`
+    : "Total advance payment across all branches"}
+</p>
+
       </div>
 
       <div className="px-4 py-6 sm:px-6">
@@ -579,7 +686,7 @@ const branchEmployeeAdvanceData = useMemo(() => {
                   />
 
                   <XAxis
-                    dataKey="employee"
+  dataKey={selectedBranch ? "employee" : "branch"}
                     tick={{
                       fontSize: 12,
                       fill: "#374151",
@@ -615,18 +722,30 @@ const branchEmployeeAdvanceData = useMemo(() => {
                       `₹${Number(value).toLocaleString("en-IN")}`,
                       "Total Advance",
                     ]}
-                    labelFormatter={(label) =>
-                      `Employee: ${label}`
-                    }
+                   labelFormatter={(label) =>
+  selectedBranch
+    ? `Employee: ${label}`
+    : `Branch: ${label}`
+}
                   />
 
-                  <Bar
-                    dataKey="totalAdvance"
-                    name="Total Advance"
-                    fill="#f5b942"
-                    radius={[8, 8, 0, 0]}
-                    barSize={38}
-                  />
+                 <Bar
+  dataKey="totalAdvance"
+  name="Total Advance"
+  radius={[8, 8, 0, 0]}
+  barSize={38}
+>
+  {branchEmployeeAdvanceData.map((entry, index) => (
+    <Cell
+      key={`cell-${index}`}
+      fill={
+        selectedBranch && entry.isOverLimit
+          ? "#ef4444"
+          : "#f5b942"
+      }
+    />
+  ))}
+</Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -722,6 +841,9 @@ const branchEmployeeAdvanceData = useMemo(() => {
                         <th className="px-6 py-4 font-semibold">
                           Employee No
                         </th>
+                        <th className="px-6 py-4 font-semibold">
+  Branch
+</th>
                       </>
                     )}
 
@@ -768,6 +890,15 @@ const branchEmployeeAdvanceData = useMemo(() => {
                               <td className="px-6 py-4 text-sm text-gray-600">
                                 {advance.employeeNumber}
                               </td>
+                              <td className="px-6 py-4">
+  <span
+    className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getBranchColor(
+      advance.branch
+    )}`}
+  >
+    {advance.branch}
+  </span>
+</td>
                             </>
                           )}
 
@@ -796,7 +927,7 @@ const branchEmployeeAdvanceData = useMemo(() => {
                     <tr>
 
                       <td
-                        colSpan={reportType === "branch" ? 6 : 4}
+                        colSpan={reportType === "branch" ? 7 : 4}
                         className="px-6 py-12 text-center"
                       >
 
@@ -806,19 +937,17 @@ const branchEmployeeAdvanceData = useMemo(() => {
 
                         <p className="mt-3 font-semibold text-gray-700">
 
-                          {!fromDate || !toDate
-                            ? "Select Date Range"
-                            : "No Advance Payments Found"}
+                          {isInvalidDateRange
+  ? "Invalid Date Range"
+  : "No Advance Payments Found"}
 
                         </p>
 
                         <p className="mt-1 text-sm text-gray-500">
 
-                          {!fromDate || !toDate
-                            ? "Select From Date and To Date to view advance payments."
-                            : isInvalidDateRange
-                            ? "Please select a valid date range."
-                            : "No advance payments are available for the selected filters."}
+                          {isInvalidDateRange
+  ? "Please select a valid date range."
+  : "No advance payments are available for the selected filters."}
 
                         </p>
 

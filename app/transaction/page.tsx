@@ -15,61 +15,104 @@ export default function TransactionReportPage() {
   );
 
   const [selectedEmployee, setSelectedEmployee] = useState("");
-  const [selectedBranch, setSelectedBranch] = useState("");
+const [selectedBranch, setSelectedBranch] = useState("");
 
-  const [fromDate, setFromDate] = useState("");
+const [fromDate, setFromDate] = useState("");
 const [toDate, setToDate] = useState("");
 
+const [search, setSearch] = useState("");
+
+
+const resetFilters = () => {
+  setSelectedEmployee("");
+  setSelectedBranch("");
+  setFromDate("");
+  setToDate("");
+  setSearch("");
+};
 const today = new Date().toISOString().split("T")[0];
+
+const getBranchColor = (branch: string) => {
+  const colors: Record<string, string> = {
+    Indore: "bg-blue-100 text-blue-700",
+    Ujjain: "bg-green-100 text-green-700",
+    Bhopal: "bg-purple-100 text-purple-700",
+  };
+
+  return colors[branch] || "bg-gray-100 text-gray-700";
+};
   // =========================
   // FILTER TRANSACTIONS
   // =========================
-  const filteredTransactions = useMemo(() => {
-    // Date dono mandatory hain
-    if (!fromDate || !toDate) {
-      return [];
-    }
-
-    // Agar To Date, From Date se chhoti hai
-    if (fromDate > toDate) {
-      return [];
-    }
-
-    return transactions.filter((transaction) => {
-      // Employee Wise
+ const filteredTransactions = useMemo(() => {
+  const filtered = transactions
+    .filter((transaction) => {
+      // =========================
+      // EMPLOYEE FILTER
+      // =========================
       const matchesEmployee =
         reportType === "employee"
-          ? selectedEmployee
-            ? transaction.employeeNumber === selectedEmployee
-            : false
+          ? !selectedEmployee ||
+            transaction.employeeNumber === selectedEmployee
           : true;
 
-      // Branch Wise
+      // =========================
+      // BRANCH FILTER
+      // =========================
       const matchesBranch =
-  reportType === "branch"
-    ? selectedBranch
-      ? transaction.branch === selectedBranch
-      : true
-    : true;
+        reportType === "branch"
+          ? !selectedBranch ||
+            transaction.branch === selectedBranch
+          : true;
 
-      // Date range
-      const matchesFromDate = transaction.date >= fromDate;
-      const matchesToDate = transaction.date <= toDate;
+      // =========================
+      // DATE FILTER
+      // =========================
+      // Date filter is optional now.
+      // If dates are selected, apply them.
+      const matchesFromDate =
+        !fromDate || transaction.date >= fromDate;
 
-      return (
-        matchesEmployee &&
-        matchesBranch &&
-        matchesFromDate &&
-        matchesToDate
-      );
-    });
-  }, [
-    reportType,
-    selectedEmployee,
-    selectedBranch,
-    fromDate,
-    toDate,
-  ]);
+      const matchesToDate =
+  !toDate || transaction.date <= toDate;
+
+const searchText = search.trim().toLowerCase();
+
+const matchesSearch =
+  !searchText ||
+  transaction.employee.toLowerCase().includes(searchText) ||
+  transaction.employeeNumber.toLowerCase().includes(searchText) ||
+  transaction.branch.toLowerCase().includes(searchText);
+
+return (
+  matchesEmployee &&
+  matchesBranch &&
+  matchesFromDate &&
+  matchesToDate &&
+  matchesSearch
+);
+    })
+    .sort((a, b) =>
+      b.date.localeCompare(a.date)
+    );
+
+  // =========================
+  // DEFAULT VIEW
+  // =========================
+  // If no date filter is selected,
+  // show latest transactions only.
+ filtered.slice(0, 10)
+
+  return filtered;
+}, [
+  reportType,
+  selectedEmployee,
+  selectedBranch,
+  fromDate,
+  toDate,
+  search,
+]);
+
 
   // =========================
   // TOTAL CALCULATIONS
@@ -124,16 +167,12 @@ const selectedPeriod =
   const isInvalidDateRange =
     Boolean(fromDate && toDate && fromDate > toDate);
 
-  const isReportReady =
-  Boolean(
-    fromDate &&
-      toDate &&
-      !isInvalidDateRange &&
-      (
-        reportType === "employee"
-          ? selectedEmployee
-          : true
-      )
+ const isReportReady =
+  !isInvalidDateRange &&
+  (
+    reportType === "employee"
+      ? true
+      : true
   );
 
   return (
@@ -264,6 +303,30 @@ const selectedPeriod =
               </p>
             </div>
 
+            <div className="mt-5 flex flex-col gap-4 md:flex-row md:items-end">
+  <div className="flex-1">
+    <label className="mb-2 block text-sm font-semibold text-gray-700">
+      Search
+    </label>
+
+    <input
+      type="text"
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      placeholder="Search employee name, employee number or branch..."
+      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
+    />
+  </div>
+
+  <button
+    type="button"
+    onClick={resetFilters}
+    className="rounded-lg bg-[#17191d] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#2a2d32]"
+  >
+    Reset
+  </button>
+</div>
+
             {/* ================= EMPLOYEE FILTER ================= */}
             {reportType === "employee" && (
               <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
@@ -386,21 +449,13 @@ const selectedPeriod =
             )}
 
             {/* ================= VALIDATION MESSAGE ================= */}
-            {!isReportReady && (
-              <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
-                <p className="text-sm font-medium text-blue-700">
-
-                  {!fromDate || !toDate
-                    ? "Please select both From Date and To Date to view transactions."
-                    : isInvalidDateRange
-                    ? "To Date cannot be earlier than From Date."
-                    : reportType === "employee"
-                    ? "Please select an employee to generate the report."
-                    : "Please select a branch to generate the report."}
-
-                </p>
-              </div>
-            )}
+            <div className="mt-5 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+  <p className="text-sm text-gray-600">
+    {!fromDate && !toDate && !search.trim()
+  ? "Showing latest transactions. Use search or filters to view specific transaction history."
+  : "Showing transactions based on the selected search and filters."}
+  </p>
+</div>
 
           </div>
 
@@ -660,9 +715,13 @@ const selectedPeriod =
 
                     <td className="px-6 py-4">
 
-                      <span className="inline-flex rounded-full bg-blue-100 px-4 py-1.5 text-xs font-semibold text-blue-700">
-                        {transaction.branch}
-                      </span>
+                     <span
+  className={`inline-flex rounded-full px-4 py-1.5 text-xs font-semibold ${getBranchColor(
+    transaction.branch
+  )}`}
+>
+  {transaction.branch}
+</span>
 
                     </td>
 
@@ -884,11 +943,11 @@ const selectedPeriod =
 
                         <p className="mt-1 text-sm text-gray-500">
 
-                          {!fromDate || !toDate
-                            ? "Select From Date and To Date to view transactions."
-                            : isInvalidDateRange
-                            ? "Please select a valid date range."
-                            : "No transactions are available for the selected filters."}
+                          {search.trim()
+  ? `No transactions found for "${search}".`
+  : isInvalidDateRange
+  ? "Please select a valid date range."
+  : "No transactions are available for the selected filters."}
 
                         </p>
 

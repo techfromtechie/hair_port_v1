@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, UserPlus } from "lucide-react";
 
 import Navbar from "@/app/components/Navbar";
@@ -9,25 +10,10 @@ import FormInput from "@/app/components/forms/FormInput";
 import FormSelect from "@/app/components/forms/FormSelect";
 import FormTextarea from "@/app/components/forms/FormTextarea";
 import FormActions from "@/app/components/forms/FormActions";
+import { supabase } from "@/app/lib/supabase";
+import { toast } from "react-toastify";
 
-// ============================================================
-// BRANCHES
-// ============================================================
 
-const branches = [
-  {
-    label: "Main Branch",
-    value: "Main Branch",
-  },
-  {
-    label: "Ujjain Branch",
-    value: "Ujjain Branch",
-  },
-  {
-    label: "Vijay Nagar Branch",
-    value: "Vijay Nagar Branch",
-  },
-];
 
 // ============================================================
 // GENDER
@@ -49,49 +35,117 @@ const genderOptions = [
 ];
 
 export default function AddEmployeePage() {
+  const router = useRouter();
   // ==========================================================
   // FORM STATES
   // ==========================================================
 
   const [name, setName] = useState("");
-  const [contactNumber, setContactNumber] =
-    useState("");
+  const [contactNumber, setContactNumber] = useState("");
   const [branch, setBranch] = useState("");
-  const [dateOfBirth, setDateOfBirth] =
-    useState("");
-  const [aadharCard, setAadharCard] =
-    useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [joiningDate, setJoiningDate] = useState("");
+  const [aadharCard, setAadharCard] = useState("");
   const [gender, setGender] = useState("");
   const [salary, setSalary] = useState("");
   const [address, setAddress] = useState("");
+
+  const [branchOptions, setBranchOptions] = useState<
+  { label: string; value: string }[]
+>([]);
+  // ==========================================================
+  // TODAY DATE
+  // ==========================================================
+
+  const today = new Date().toISOString().split("T")[0];
+
+  useEffect(() => {
+  const fetchBranches = async () => {
+    const { data, error } = await supabase
+      .from("branches")
+      .select("id, name")
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error(error);
+      toast.error("Failed to load branches.");
+      return;
+    }
+
+    setBranchOptions(
+      data.map((branch) => ({
+        label: branch.name,
+        value: branch.name,
+      }))
+    );
+  };
+
+  fetchBranches();
+}, []);
 
   // ==========================================================
   // SUBMIT
   // ==========================================================
 
-  const handleSubmit = (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
-    e.preventDefault();
+  const handleSubmit = async (
+  e: React.FormEvent<HTMLFormElement>
+) => {
+  e.preventDefault();
 
-    const employeeData = {
-      name,
-      contactNumber,
-      branch,
-      dateOfBirth,
-      aadharCard,
-      gender,
-      salary,
-      address,
-    };
+  try {
+    // Find branch UUID from Supabase
+    const { data: branchData, error: branchError } =
+      await supabase
+        .from("branches")
+        .select("id")
+        .eq("name", branch)
+        .single();
 
-    console.log(
-      "Employee Data:",
-      employeeData
+    if (branchError) {
+      console.error(branchError);
+
+      toast.error("Branch not found.");
+
+      return;
+    }
+
+    // Insert employee into Supabase
+    const { error } = await supabase
+      .from("employees")
+      .insert({
+        name,
+        contact_number: contactNumber,
+        branch_id: branchData.id,
+        date_of_birth: dateOfBirth || null,
+        joining_date: joiningDate,
+        aadhar_card: aadharCard,
+        gender,
+        salary: Number(salary),
+        address,
+      });
+
+    if (error) {
+      console.error(error);
+
+      toast.error(error.message);
+
+      return;
+    }
+
+    // Success toast
+    toast.success("Employee added successfully!");
+
+    // Redirect to Employees page
+    router.push("/management/admin/employees");
+
+  } catch (error) {
+    console.error(error);
+
+    toast.error(
+      "Something went wrong while adding employee."
     );
-
-    // Backend/API integration can be added here later.
-  };
+  }
+};
 
   // ==========================================================
   // RESET
@@ -102,6 +156,7 @@ export default function AddEmployeePage() {
     setContactNumber("");
     setBranch("");
     setDateOfBirth("");
+    setJoiningDate("");
     setAadharCard("");
     setGender("");
     setSalary("");
@@ -144,7 +199,6 @@ export default function AddEmployeePage() {
           ================================================= */}
 
           <div className="mb-8">
-
             <div className="flex items-center gap-3">
 
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#fff9eb] text-[#d59618]">
@@ -152,7 +206,6 @@ export default function AddEmployeePage() {
               </div>
 
               <div>
-
                 <h1 className="text-3xl font-bold tracking-tight text-[#17191d]">
                   Add Employee
                 </h1>
@@ -160,11 +213,9 @@ export default function AddEmployeePage() {
                 <p className="mt-1 text-sm text-gray-500">
                   Add a new employee to the salon.
                 </p>
-
               </div>
 
             </div>
-
           </div>
 
           {/* =================================================
@@ -176,8 +227,11 @@ export default function AddEmployeePage() {
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm md:p-8"
           >
 
-            <div className="mb-8">
+            {/* =================================================
+                FORM HEADER
+            ================================================= */}
 
+            <div className="mb-8">
               <h2 className="text-lg font-bold text-[#17191d]">
                 Employee Information
               </h2>
@@ -185,7 +239,6 @@ export default function AddEmployeePage() {
               <p className="mt-1 text-sm text-gray-500">
                 Enter the employee's personal and salary details.
               </p>
-
             </div>
 
             {/* =================================================
@@ -201,9 +254,7 @@ export default function AddEmployeePage() {
                 type="text"
                 placeholder="Enter employee name"
                 value={name}
-                onChange={(e) =>
-                  setName(e.target.value)
-                }
+                onChange={(e) => setName(e.target.value)}
                 required
               />
 
@@ -215,9 +266,7 @@ export default function AddEmployeePage() {
                 placeholder="Enter contact number"
                 value={contactNumber}
                 onChange={(e) =>
-                  setContactNumber(
-                    e.target.value
-                  )
+                  setContactNumber(e.target.value)
                 }
                 required
               />
@@ -227,15 +276,13 @@ export default function AddEmployeePage() {
               <FormSelect
                 label="Branch"
                 value={branch}
-                onChange={(e) =>
-                  setBranch(e.target.value)
-                }
+                onChange={(e) => setBranch(e.target.value)}
                 options={[
                   {
                     label: "Select Branch",
                     value: "",
                   },
-                  ...branches,
+                  ...branchOptions,
                 ]}
                 required
               />
@@ -247,15 +294,22 @@ export default function AddEmployeePage() {
                 type="date"
                 value={dateOfBirth}
                 onChange={(e) =>
-                  setDateOfBirth(
-                    e.target.value
-                  )
+                  setDateOfBirth(e.target.value)
                 }
-                max={
-                  new Date()
-                    .toISOString()
-                    .split("T")[0]
+                max={today}
+                required
+              />
+
+              {/* JOINING DATE */}
+
+              <FormInput
+                label="Joining Date"
+                type="date"
+                value={joiningDate}
+                onChange={(e) =>
+                  setJoiningDate(e.target.value)
                 }
+                max={today}
                 required
               />
 
@@ -267,9 +321,7 @@ export default function AddEmployeePage() {
                 placeholder="Enter Aadhar number"
                 value={aadharCard}
                 onChange={(e) =>
-                  setAadharCard(
-                    e.target.value
-                  )
+                  setAadharCard(e.target.value)
                 }
                 required
               />
@@ -279,9 +331,7 @@ export default function AddEmployeePage() {
               <FormSelect
                 label="Gender"
                 value={gender}
-                onChange={(e) =>
-                  setGender(e.target.value)
-                }
+                onChange={(e) => setGender(e.target.value)}
                 options={[
                   {
                     label: "Select Gender",
@@ -313,7 +363,6 @@ export default function AddEmployeePage() {
             ================================================= */}
 
             <div className="mt-5">
-
               <FormTextarea
                 label="Address"
                 placeholder="Enter employee address"
@@ -323,7 +372,6 @@ export default function AddEmployeePage() {
                 }
                 required
               />
-
             </div>
 
             {/* =================================================
@@ -331,12 +379,10 @@ export default function AddEmployeePage() {
             ================================================= */}
 
             <div className="mt-8 border-t border-gray-100 pt-6">
-
               <FormActions
                 onReset={handleReset}
                 submitLabel="Add Employee"
               />
-
             </div>
 
           </form>

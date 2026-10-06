@@ -3,11 +3,13 @@ type FormInputProps = {
   type?: string;
   placeholder?: string;
   value?: string;
+  defaultValue?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   readOnly?: boolean;
   required?: boolean;
   min?: string;
   max?: string;
+  name?: string;
 };
 
 export default function FormInput({
@@ -15,11 +17,13 @@ export default function FormInput({
   type = "text",
   placeholder,
   value,
+  defaultValue,
   onChange,
   readOnly = false,
   required = false,
   min,
   max,
+  name,
 }: FormInputProps) {
   return (
     <div>
@@ -29,7 +33,9 @@ export default function FormInput({
 
       <input
         type={type}
+        name={name}
         value={value}
+        defaultValue={defaultValue}
         onChange={onChange}
         placeholder={placeholder}
         readOnly={readOnly}

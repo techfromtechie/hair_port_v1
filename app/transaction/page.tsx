@@ -1,15 +1,191 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Navbar from "@/app/components/Navbar";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import ExportTable from "@/app/components/ExportTable";
-import {
-  employees,
-  branches,
-  transactions,
-} from "@/app/data/transactionData";
-
+import { supabase } from "@/app/lib/supabase";
+import { toast } from "react-toastify";
 export default function TransactionReportPage() {
+  type Employee = {
+  id: string;
+  name: string;
+  branchId: string;
+};
+
+type Branch = {
+  id: string;
+  name: string;
+};
+
+type Transaction = {
+  id: string;
+  employeeId: string;
+  branchId: string;
+  employee: string;
+  branch: string;
+  service: string;
+  amount: number;
+  paymentMode: "Cash" | "Online";
+  description: string;
+  date: string;
+  cash: number;
+  online: number;
+};
+
+const [employees, setEmployees] = useState<Employee[]>([]);
+const [branches, setBranches] = useState<string[]>([]);
+const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  const fetchTransactionData = async () => {
+    try {
+      setLoading(true);
+
+      // =========================
+      // FETCH EMPLOYEES
+      // =========================
+
+   // =========================
+// FETCH EMPLOYEES
+// =========================
+
+const { data: employeeData, error: employeeError } =
+  await supabase
+    .from("employees")
+    .select(`
+      id,
+      name,
+      branch_id
+    `)
+    .order("name", { ascending: true });
+
+if (employeeError) {
+  throw employeeError;
+}
+
+const formattedEmployees: Employee[] = (employeeData || []).map(
+  (employee: any) => ({
+    id: employee.id,
+    name: employee.name,
+    branchId: employee.branch_id,
+  })
+);
+
+setEmployees(formattedEmployees);
+      // =========================
+      // FETCH BRANCHES
+      // =========================
+
+      const { data: branchData, error: branchError } =
+        await supabase
+          .from("branches")
+          .select("id, name")
+          .order("name", { ascending: true });
+
+      if (branchError) {
+        throw branchError;
+      }
+
+      setBranches(
+        (branchData || []).map((branch: any) => branch.name)
+      );
+// =========================
+// FETCH TRANSACTIONS
+// =========================
+
+const {
+  data: transactionData,
+  error: transactionError,
+} = await supabase
+  .from("transactions")
+  .select(`
+    id,
+    employee_id,
+    branch_id,
+    service,
+    amount,
+    payment_mode,
+    description,
+    transaction_date,
+    created_at
+  `)
+  .order("created_at", {
+    ascending: false,
+  });
+  
+if (transactionError) {
+  throw transactionError;
+}
+
+// =========================
+// FORMAT TRANSACTIONS
+// =========================
+
+const formattedTransactions: Transaction[] = (
+  transactionData || []
+).map((transaction: any) => {
+  const employee = formattedEmployees.find(
+    (emp) => emp.id === transaction.employee_id
+  );
+
+  const branch = (branchData || []).find(
+    (branch: any) => branch.id === transaction.branch_id
+  );
+
+  const amount = Number(transaction.amount || 0);
+
+  return {
+    id: transaction.id,
+    employeeId: transaction.employee_id,
+    branchId: transaction.branch_id,
+
+    employee: employee?.name || "Unknown Employee",
+
+    branch: branch?.name || "Unknown Branch",
+
+    service: transaction.service || "",
+
+    amount,
+
+    paymentMode: transaction.payment_mode,
+
+    description: transaction.description || "",
+
+    date: transaction.transaction_date,
+
+    cash:
+      transaction.payment_mode === "Cash"
+        ? amount
+        : 0,
+
+    online:
+      transaction.payment_mode === "Online"
+        ? amount
+        : 0,
+  };
+});
+
+console.log("Transactions from Supabase:", transactionData);
+console.log("Formatted transactions:", formattedTransactions);
+
+setTransactions(formattedTransactions);
+    } catch (error: any) {
+      console.error("Transaction fetch error:", error);
+
+      toast.error(
+        error?.message || "Failed to load transaction data."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchTransactionData();
+}, []);
   const [reportType, setReportType] = useState<"employee" | "branch">(
     "employee"
   );
@@ -51,10 +227,10 @@ const getBranchColor = (branch: string) => {
       // EMPLOYEE FILTER
       // =========================
       const matchesEmployee =
-        reportType === "employee"
-          ? !selectedEmployee ||
-            transaction.employeeNumber === selectedEmployee
-          : true;
+  reportType === "employee"
+    ? !selectedEmployee ||
+      transaction.employeeId === selectedEmployee
+    : true;
 
       // =========================
       // BRANCH FILTER
@@ -81,7 +257,6 @@ const searchText = search.trim().toLowerCase();
 const matchesSearch =
   !searchText ||
   transaction.employee.toLowerCase().includes(searchText) ||
-  transaction.employeeNumber.toLowerCase().includes(searchText) ||
   transaction.branch.toLowerCase().includes(searchText);
 
 return (
@@ -97,14 +272,16 @@ return (
     );
 
   // =========================
-  // DEFAULT VIEW
-  // =========================
-  // If no date filter is selected,
-  // show latest transactions only.
- filtered.slice(0, 10)
+// DEFAULT VIEW
+// =========================
 
-  return filtered;
+if (!fromDate && !toDate && !search.trim()) {
+  return filtered.slice(0, 10);
+}
+
+return filtered;
 }, [
+  transactions,
   reportType,
   selectedEmployee,
   selectedBranch,
@@ -132,7 +309,7 @@ return (
   const transactionExportData = filteredTransactions.map(
   (transaction) => ({
     employee: transaction.employee,
-    employeeNumber: transaction.employeeNumber,
+    
     date: transaction.date,
     cash: transaction.cash,
     online: transaction.online,
@@ -142,7 +319,7 @@ return (
 
 const branchTotalEmployees = new Set(
   filteredTransactions.map(
-    (transaction) => transaction.employeeNumber
+    (transaction) => transaction.employeeId
   )
 ).size;
 
@@ -158,8 +335,8 @@ const selectedPeriod =
   // SELECTED EMPLOYEE
   // =========================
   const selectedEmployeeData = employees.find(
-    (employee) => employee.employeeNumber === selectedEmployee
-  );
+  (employee) => employee.id === selectedEmployee
+);
 
   // =========================
   // DATE VALIDATION
@@ -191,13 +368,20 @@ const selectedPeriod =
           {/* ================= PAGE HEADER ================= */}
           <div className="mb-8">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-1 rounded-full bg-[#f5b942]" />
+  <Link
+    href="/management/admin"
+    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-[#f5b942] hover:bg-[#fff9eb] hover:text-[#a86f00]"
+    title="Back to Admin Dashboard"
+  >
+    <ArrowLeft className="h-4 w-4" />
+  </Link>
 
-              <h1 className="text-3xl font-bold tracking-tight text-[#17191d] md:text-4xl">
-                Transaction Report
-              </h1>
-            </div>
+  <div className="h-8 w-1 rounded-full bg-[#f5b942]" />
 
+  <h1 className="text-3xl font-bold tracking-tight text-[#17191d] md:text-4xl">
+    Transaction Report
+  </h1>
+</div>
             <p className="mt-3 ml-4 text-base text-gray-500">
               View and analyze transaction payments by employee or branch.
             </p>
@@ -313,7 +497,7 @@ const selectedPeriod =
       type="text"
       value={search}
       onChange={(e) => setSearch(e.target.value)}
-      placeholder="Search employee name, employee number or branch..."
+      placeholder="Search employee name or branch..."
       className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
     />
   </div>
@@ -337,22 +521,18 @@ const selectedPeriod =
                     Employee
                   </label>
 
-                  <select
-                    value={selectedEmployee}
-                    onChange={(e) => setSelectedEmployee(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
-                  >
-                    <option value="">Select Employee</option>
+                 <select
+  value={selectedEmployee}
+  onChange={(e) => setSelectedEmployee(e.target.value)}
+>
+  <option value="">Select Employee</option>
 
-                    {employees.map((employee) => (
-                      <option
-                        key={employee.employeeNumber}
-                        value={employee.employeeNumber}
-                      >
-                        {employee.name} ({employee.employeeNumber})
-                      </option>
-                    ))}
-                  </select>
+  {employees.map((employee) => (
+   <option key={employee.id} value={employee.id}>
+  {employee.name}
+</option>
+  ))}
+</select>
                 </div>
 
                 {/* From Date */}
@@ -474,12 +654,9 @@ const selectedPeriod =
           {selectedEmployeeData.name}
         </h2>
 
-        <p className="mt-1 text-sm text-gray-600">
-          Employee No:{" "}
-          <span className="font-semibold">
-            {selectedEmployeeData.employeeNumber}
-          </span>
-        </p>
+       <p className="mt-1 text-sm text-gray-600">
+  Transaction history of selected employee
+</p>
       </div>
 
       {/* TRANSACTION COUNT */}
@@ -631,10 +808,7 @@ const selectedPeriod =
               header: "Employee Name",
               key: "employee",
             },
-            {
-              header: "Employee No",
-              key: "employeeNumber",
-            },
+           
             {
               header: "Cash",
               key: "cash",
@@ -674,10 +848,7 @@ const selectedPeriod =
                 Employee Name
               </th>
 
-              <th className="px-6 py-4 text-sm font-semibold text-gray-700">
-                Employee No
-              </th>
-
+             
               <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">
                 Cash
               </th>
@@ -729,9 +900,7 @@ const selectedPeriod =
                       {transaction.employee}
                     </td>
 
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {transaction.employeeNumber}
-                    </td>
+                    
 
                     <td className="px-6 py-4 text-right text-sm text-gray-700">
                       ₹{transaction.cash.toLocaleString("en-IN")}
@@ -842,17 +1011,15 @@ const selectedPeriod =
                 <thead>
                   <tr className="bg-[#17191d] text-left text-sm text-white">
 
-                    {reportType === "branch" && (
-                      <>
-                        <th className="px-6 py-4 font-semibold">
-                          Employee
-                        </th>
+                   <th className="px-6 py-4 font-semibold">
+  Employee Name
+</th>
 
-                        <th className="px-6 py-4 font-semibold">
-                          Employee No
-                        </th>
-                      </>
-                    )}
+{reportType === "branch" && (
+  <th className="px-6 py-4 font-semibold">
+    Employee No
+  </th>
+)}
 
                     <th className="px-6 py-4 font-semibold">
                       Date
@@ -888,17 +1055,15 @@ const selectedPeriod =
                           className="border-b border-gray-100 transition hover:bg-[#fffaf0]"
                         >
 
-                          {reportType === "branch" && (
-                            <>
-                              <td className="px-6 py-4 text-sm font-semibold text-gray-800">
-                                {transaction.employee}
-                              </td>
+                          <td className="px-6 py-4 text-sm font-semibold text-gray-800">
+  {transaction.employee}
+</td>
 
-                              <td className="px-6 py-4 text-sm text-gray-600">
-                                {transaction.employeeNumber}
-                              </td>
-                            </>
-                          )}
+{reportType === "branch" && (
+  <td className="px-6 py-4 text-sm text-gray-600">
+    {transaction.employeeNumber}
+  </td>
+)}
 
                           <td className="px-6 py-4 text-sm font-medium text-gray-800">
                             {transaction.date}

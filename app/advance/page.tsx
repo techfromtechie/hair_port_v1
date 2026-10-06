@@ -178,15 +178,16 @@ const branchEmployeeAdvanceData = useMemo(() => {
   // SELECTED BRANCH - EMPLOYEE WISE
   // =========================
   const employeeMap: Record<
-    string,
-    {
-      employee: string;
-      employeeNumber: string;
-      salary: number;
-      totalAdvance: number;
-      isOverLimit: boolean;
-    }
-  > = {};
+  string,
+  {
+    employee: string;
+    employeeNumber: string;
+    salary: number;
+    totalAdvance: number;
+    advancePercentage: number;
+    isOverLimit: boolean;
+  }
+> = {};
 
   filteredAdvances.forEach((advance) => {
     if (!employeeMap[advance.employeeNumber]) {
@@ -198,25 +199,30 @@ const branchEmployeeAdvanceData = useMemo(() => {
       const salary = employeeData?.salary ?? 0;
 
       employeeMap[advance.employeeNumber] = {
-        employee: advance.employee,
-        employeeNumber: advance.employeeNumber,
-        salary,
-        totalAdvance: 0,
-        isOverLimit: false,
-      };
+  employee: advance.employee,
+  employeeNumber: advance.employeeNumber,
+  salary,
+  totalAdvance: 0,
+  advancePercentage: 0,
+  isOverLimit: false,
+};
     }
 
     employeeMap[advance.employeeNumber].totalAdvance +=
       advance.cash + advance.online;
   });
 
-  // Check 50% salary limit
   Object.values(employeeMap).forEach((employee) => {
-    const fiftyPercentSalary = employee.salary * 0.5;
+  if (employee.salary > 0) {
+    employee.advancePercentage =
+      (employee.totalAdvance / employee.salary) * 100;
+  } else {
+    employee.advancePercentage = 0;
+  }
 
-    employee.isOverLimit =
-      employee.totalAdvance > fiftyPercentSalary;
-  });
+  employee.isOverLimit =
+    employee.advancePercentage > 50;
+});
 
   return Object.values(employeeMap);
 }, [
@@ -735,16 +741,25 @@ const branchEmployeeAdvanceData = useMemo(() => {
   radius={[8, 8, 0, 0]}
   barSize={38}
 >
-  {branchEmployeeAdvanceData.map((entry, index) => (
+ {branchEmployeeAdvanceData.map((entry, index) => {
+  const percentage = entry.advancePercentage ?? 0;
+
+  let barColor = "#067a3f"; // Light Green
+
+  if (percentage > 50) {
+    barColor = "#8f1818"; // Light Red
+  } else if (percentage > 20) {
+    barColor = "#8b720c"; // Light Yellow
+  }
+
+  return (
     <Cell
       key={`cell-${index}`}
-      fill={
-        selectedBranch && entry.isOverLimit
-          ? "#ef4444"
-          : "#f5b942"
-      }
+      fill={barColor}
     />
-  ))}
+  );
+})}
+
 </Bar>
                 </BarChart>
               </ResponsiveContainer>

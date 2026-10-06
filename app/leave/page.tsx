@@ -13,24 +13,39 @@ export default function LeaveReportPage() {
   const today = new Date().toISOString().split("T")[0];
 
   const filteredLeaves = useMemo(() => {
-    if (!selectedEmployee || !fromDate || !toDate) {
-      return [];
-    }
+  // No filters selected -> show recent leaves
+  if (!selectedEmployee && !fromDate && !toDate) {
+    return [...leaves]
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 10);
+  }
 
-    if (fromDate > toDate) {
-      return [];
-    }
+  // Invalid date range
+  if (fromDate && toDate && fromDate > toDate) {
+    return [];
+  }
 
-    return leaves.filter((leave) => {
-      const employeeMatch = leave.employeeNumber === selectedEmployee;
+  return leaves
+    .filter((leave) => {
+      // Employee filter
+      const employeeMatch = selectedEmployee
+        ? leave.employeeNumber === selectedEmployee
+        : true;
 
-      const dateMatch =
-        leave.date >= fromDate &&
-        leave.date <= toDate;
+      // From date filter
+      const fromDateMatch = fromDate
+        ? leave.date >= fromDate
+        : true;
 
-      return employeeMatch && dateMatch;
-    });
-  }, [selectedEmployee, fromDate, toDate]);
+      // To date filter
+      const toDateMatch = toDate
+        ? leave.date <= toDate
+        : true;
+
+      return employeeMatch && fromDateMatch && toDateMatch;
+    })
+    .sort((a, b) => b.date.localeCompare(a.date));
+}, [selectedEmployee, fromDate, toDate]);
 
   const leaveExportData = filteredLeaves.map((leave) => ({
   date: leave.date,
@@ -167,20 +182,12 @@ export default function LeaveReportPage() {
               </div>
             )}
 
-            {/* REQUIRED MESSAGE */}
-            {!selectedEmployee || !fromDate || !toDate ? (
-              <div className="mt-5 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm font-medium text-yellow-700">
-                Please select an employee, From Date and To Date to view
-                the report.
-              </div>
-            ) : null}
+            
           </div>
 
           {/* EMPLOYEE CARD */}
           {selectedEmployeeData &&
-            fromDate &&
-            toDate &&
-            !isInvalidDateRange && (
+  !isInvalidDateRange && (
               <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div>
@@ -229,17 +236,17 @@ export default function LeaveReportPage() {
             )}
 
           {/* REPORT TABLE */}
-          {selectedEmployee &&
-            fromDate &&
-            toDate &&
+          {
             !isInvalidDateRange && (
               <>
                 <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
                  <div className="flex flex-col gap-4 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
   <div>
     <h2 className="text-xl font-bold text-gray-900">
-      Leave Details
-    </h2>
+  {selectedEmployee || fromDate || toDate
+    ? "Leave Details"
+    : "Recent Leave Records"}
+</h2>
 
     <p className="mt-1 text-sm text-gray-500">
       {filteredLeaves.length} leave

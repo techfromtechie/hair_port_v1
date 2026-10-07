@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import Navbar from "@/app/components/Navbar";
 
-import {
-  employees,
-  branches,
-  advances,
-} from "@/app/data/advanceData";
+import { supabase } from "@/app/lib/supabase";
+import { toast } from "react-toastify";
+
 import ExportTable from "../components/ExportTable";
 import {
   BarChart,
@@ -20,17 +20,262 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+type Employee = {
+  id: string;
+  name: string;
+  branchId: string;
+  salary: number;
+  contactNumber: string;
+};
+
+type Branch = {
+  id: string;
+  name: string;
+};
+
+type Advance = {
+  id: string;
+  employeeId: string;
+  branchId: string;
+
+  employee: string;
+  branch: string;
+
+  cash: number;
+  online: number;
+
+  description: string;
+  date: string;
+  createdAt: string;
+
+  contactNumber: string;
+};
+
 export default function AdvancePaymentReportPage() {
+   const router = useRouter();
   const [reportType, setReportType] = useState<
     "employee" | "branch"
   >("employee");
 
+  const [employees, setEmployees] = useState<Employee[]>([]);
+const [branches, setBranches] = useState<Branch[]>([]);
+const [advances, setAdvances] = useState<Advance[]>([]);
+
+const [loading, setLoading] = useState(true);
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [selectedBranch, setSelectedBranch] = useState("");
 
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+  const fetchAdvanceReportData = async () => {
+    try {
+      setLoading(true);
+
+      // =========================
+      // FETCH EMPLOYEES
+      // =========================
+      const {
+        data: employeeData,
+        error: employeeError,
+      } = await supabase
+        .from("employees")
+        .select(`
+          id,
+          name,
+          branch_id,
+          salary,
+          contact_number
+        `)
+        .order("name", {
+          ascending: true,
+        });
+
+      if (employeeError) {
+        console.error(
+          "Employee fetch error:",
+          employeeError
+        );
+
+        toast.error("Failed to load employees.");
+        return;
+      }
+
+      // =========================
+      // FETCH BRANCHES
+      // =========================
+      const {
+        data: branchData,
+        error: branchError,
+      } = await supabase
+        .from("branches")
+        .select(`
+          id,
+          name
+        `)
+        .order("name", {
+          ascending: true,
+        });
+
+      if (branchError) {
+        console.error(
+          "Branch fetch error:",
+          branchError
+        );
+
+        toast.error("Failed to load branches.");
+        return;
+      }
+
+      // =========================
+      // FORMAT EMPLOYEES
+      // =========================
+      const formattedEmployees: Employee[] = (
+        employeeData ?? []
+      ).map((employee) => ({
+        id: employee.id,
+        name: employee.name,
+        branchId: employee.branch_id,
+        salary: Number(employee.salary ?? 0),
+        contactNumber:
+          employee.contact_number ?? "",
+      }));
+
+      // =========================
+      // FORMAT BRANCHES
+      // =========================
+      const formattedBranches: Branch[] = (
+        branchData ?? []
+      ).map((branch) => ({
+        id: branch.id,
+        name: branch.name,
+      }));
+
+      // =========================
+      // FETCH ADVANCE PAYMENTS
+      // =========================
+      const {
+        data: advanceData,
+        error: advanceError,
+      } = await supabase
+        .from("advance_payments")
+        .select(`
+          id,
+          employee_id,
+          branch_id,
+          cash,
+          online,
+          description,
+          advance_date,
+          created_at
+        `)
+        .order("created_at", {
+          ascending: false,
+        });
+
+      if (advanceError) {
+        console.error(
+          "Advance fetch error:",
+          advanceError
+        );
+
+        toast.error(
+          "Failed to load advance payments."
+        );
+
+        return;
+      }
+
+      // =========================
+      // CREATE LOOKUP MAPS
+      // =========================
+
+      const employeeMap = new Map(
+        formattedEmployees.map((employee) => [
+          employee.id,
+          employee,
+        ])
+      );
+
+      const branchMap = new Map(
+        formattedBranches.map((branch) => [
+          branch.id,
+          branch,
+        ])
+      );
+
+      // =========================
+      // FORMAT ADVANCES
+      // =========================
+
+      const formattedAdvances: Advance[] = (
+        advanceData ?? []
+      ).map((advance) => {
+        const employee = employeeMap.get(
+          advance.employee_id
+        );
+
+        const branch = branchMap.get(
+          advance.branch_id
+        );
+
+        return {
+          id: advance.id,
+
+          employeeId: advance.employee_id,
+
+          branchId: advance.branch_id,
+
+          employee:
+            employee?.name ?? "Unknown Employee",
+
+          branch:
+            branch?.name ?? "Unknown Branch",
+
+          cash: Number(advance.cash ?? 0),
+
+          online: Number(advance.online ?? 0),
+
+          description:
+            advance.description ?? "",
+
+          date: advance.advance_date,
+
+          createdAt: advance.created_at,
+
+          contactNumber:
+            employee?.contactNumber ?? "",
+        };
+      });
+
+      // =========================
+      // SET STATE
+      // =========================
+
+      setEmployees(formattedEmployees);
+
+      setBranches(formattedBranches);
+
+      setAdvances(formattedAdvances);
+
+    } catch (error) {
+      console.error(
+        "Unexpected report error:",
+        error
+      );
+
+      toast.error(
+        "Something went wrong while loading advance report."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchAdvanceReportData();
+}, []);
 
   // =========================
   // TODAY DATE
@@ -48,47 +293,75 @@ export default function AdvancePaymentReportPage() {
   "bg-indigo-100 text-indigo-700",
 ];
 
-const getBranchColor = (branch: string) => {
-  const index = branches.indexOf(branch);
+const getBranchColor = (branchName: string) => {
+  const index = branches.findIndex(
+    (branch) => branch.name === branchName
+  );
 
   return branchColorClasses[
-    index >= 0 ? index % branchColorClasses.length : 0
+    index >= 0
+      ? index % branchColorClasses.length
+      : 0
   ];
 };
 
-  // =========================
-  // FILTER ADVANCES
-  // =========================
   const filteredAdvances = useMemo(() => {
   const searchText = search.trim().toLowerCase();
 
   const filtered = advances
     .filter((advance) => {
+      // =========================
+      // EMPLOYEE FILTER
+      // =========================
       const matchesEmployee =
         reportType === "employee"
           ? !selectedEmployee ||
-            advance.employeeNumber === selectedEmployee
+            advance.employeeId === selectedEmployee
           : true;
 
+      // =========================
+      // BRANCH FILTER
+      // =========================
       const matchesBranch =
         reportType === "branch"
           ? !selectedBranch ||
-            advance.branch === selectedBranch
+            advance.branchId === selectedBranch
           : true;
 
+      // =========================
+      // SEARCH
+      // =========================
       const matchesSearch =
         !searchText ||
-        advance.employee.toLowerCase().includes(searchText) ||
-        advance.employeeNumber.toLowerCase().includes(searchText) ||
-        advance.branch.toLowerCase().includes(searchText) ||
-        String(advance.cash).includes(searchText) ||
-        String(advance.online).includes(searchText);
+        advance.employee
+          .toLowerCase()
+          .includes(searchText) ||
+        advance.branch
+          .toLowerCase()
+          .includes(searchText) ||
+        advance.contactNumber
+          .toLowerCase()
+          .includes(searchText) ||
+        String(advance.cash).includes(
+          searchText
+        ) ||
+        String(advance.online).includes(
+          searchText
+        );
 
+      // =========================
+      // FROM DATE
+      // =========================
       const matchesFromDate =
-        !fromDate || advance.date >= fromDate;
+        !fromDate ||
+        advance.date >= fromDate;
 
+      // =========================
+      // TO DATE
+      // =========================
       const matchesToDate =
-        !toDate || advance.date <= toDate;
+        !toDate ||
+        advance.date <= toDate;
 
       return (
         matchesEmployee &&
@@ -98,16 +371,27 @@ const getBranchColor = (branch: string) => {
         matchesToDate
       );
     })
-    .sort((a, b) => b.date.localeCompare(a.date));
+    .sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt)
+    );
 
-  // No filters -> latest 10 payments
-  if (!searchText && !fromDate && !toDate) {
+  // =========================
+  // DEFAULT
+  // RECENT 10 ADVANCES
+  // =========================
+  if (
+    !selectedEmployee &&
+    !selectedBranch &&
+    !searchText &&
+    !fromDate &&
+    !toDate
+  ) {
     return filtered.slice(0, 10);
   }
 
-  // Search/date filter -> show all matching records
   return filtered;
 }, [
+  advances,
   reportType,
   selectedEmployee,
   selectedBranch,
@@ -177,11 +461,10 @@ const branchEmployeeAdvanceData = useMemo(() => {
   // =========================
   // SELECTED BRANCH - EMPLOYEE WISE
   // =========================
-  const employeeMap: Record<
+ const employeeMap: Record<
   string,
   {
     employee: string;
-    employeeNumber: string;
     salary: number;
     totalAdvance: number;
     advancePercentage: number;
@@ -190,27 +473,32 @@ const branchEmployeeAdvanceData = useMemo(() => {
 > = {};
 
   filteredAdvances.forEach((advance) => {
-    if (!employeeMap[advance.employeeNumber]) {
-      const employeeData = employees.find(
-        (employee) =>
-          employee.employeeNumber === advance.employeeNumber
-      );
+  const employeeId = advance.employeeId;
 
-      const salary = employeeData?.salary ?? 0;
+  if (!employeeMap[employeeId]) {
+    const employeeData = employees.find(
+      (employee) => employee.id === employeeId
+    );
 
-      employeeMap[advance.employeeNumber] = {
-  employee: advance.employee,
-  employeeNumber: advance.employeeNumber,
-  salary,
-  totalAdvance: 0,
-  advancePercentage: 0,
-  isOverLimit: false,
-};
-    }
+    employeeMap[employeeId] = {
+      employee:
+        employeeData?.name ??
+        advance.employee ??
+        "Unknown Employee",
 
-    employeeMap[advance.employeeNumber].totalAdvance +=
-      advance.cash + advance.online;
-  });
+      salary: employeeData?.salary ?? 0,
+
+      totalAdvance: 0,
+
+      advancePercentage: 0,
+
+      isOverLimit: false,
+    };
+  }
+
+  employeeMap[employeeId].totalAdvance +=
+    advance.cash + advance.online;
+});
 
   Object.values(employeeMap).forEach((employee) => {
   if (employee.salary > 0) {
@@ -236,7 +524,6 @@ const branchEmployeeAdvanceData = useMemo(() => {
 
   const advanceExportData = filteredAdvances.map((advance) => ({
   employee: advance.employee,
-  employeeNumber: advance.employeeNumber,
   date: advance.date,
   cash: advance.cash,
   online: advance.online,
@@ -247,9 +534,17 @@ const branchEmployeeAdvanceData = useMemo(() => {
   // SELECTED EMPLOYEE
   // =========================
   const selectedEmployeeData = employees.find(
-    (employee) =>
-      employee.employeeNumber === selectedEmployee
-  );
+  (employee) =>
+    employee.id === selectedEmployee
+);
+
+// =========================
+// SELECTED BRANCH
+// =========================
+
+const selectedBranchData = branches.find(
+  (branch) => branch.id === selectedBranch
+);
 
   // =========================
   // DATE VALIDATION
@@ -274,18 +569,33 @@ const branchEmployeeAdvanceData = useMemo(() => {
 
           {/* ================= PAGE HEADER ================= */}
           <div className="mb-8">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-1 rounded-full bg-[#f5b942]" />
+  <div className="flex items-center gap-4">
 
-              <h1 className="text-3xl font-bold tracking-tight text-[#17191d] md:text-4xl">
-                Advance Payment Report
-              </h1>
-            </div>
+    {/* Back Button */}
+    <button
+      type="button"
+      onClick={() => router.back()}
+      className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-sm transition hover:bg-gray-100 hover:text-black"
+      aria-label="Go back"
+    >
+      <ArrowLeft size={20} />
+    </button>
 
-            <p className="mt-3 ml-4 text-base text-gray-500">
-              View and analyze advance payments by employee or branch.
-            </p>
-          </div>
+    {/* Page Title */}
+    <div className="flex items-center gap-3">
+      <div className="h-8 w-1 rounded-full bg-[#f5b942]" />
+
+      <h1 className="text-3xl font-bold tracking-tight text-[#17191d] md:text-4xl">
+        Advance Payment Report
+      </h1>
+    </div>
+
+  </div>
+
+  <p className="mt-3 ml-14 text-base text-gray-500">
+    View and analyze advance payments by employee or branch.
+  </p>
+</div>
 
           {/* ================= REPORT TYPE ================= */}
           <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -410,14 +720,13 @@ const branchEmployeeAdvanceData = useMemo(() => {
                     </option>
 
                     {employees.map((employee) => (
-                      <option
-                        key={employee.employeeNumber}
-                        value={employee.employeeNumber}
-                      >
-                        {employee.name} (
-                        {employee.employeeNumber})
-                      </option>
-                    ))}
+  <option
+    key={employee.id}
+    value={employee.id}
+  >
+    {employee.name}
+  </option>
+))}
                   </select>
                 </div>
 
@@ -481,10 +790,13 @@ const branchEmployeeAdvanceData = useMemo(() => {
                     </option>
 
                     {branches.map((branch) => (
-                      <option key={branch} value={branch}>
-                        {branch}
-                      </option>
-                    ))}
+  <option
+    key={branch.id}
+    value={branch.id}
+  >
+    {branch.name}
+  </option>
+))}
                   </select>
                 </div>
 
@@ -537,7 +849,7 @@ const branchEmployeeAdvanceData = useMemo(() => {
       type="text"
       value={search}
       onChange={(e) => setSearch(e.target.value)}
-      placeholder="Search employee, employee number, branch or amount..."
+      placeholder="Search employee, branch, contact or amount..."
       className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
     />
   </div>
@@ -584,11 +896,11 @@ const branchEmployeeAdvanceData = useMemo(() => {
                     </h2>
 
                     <p className="mt-1 text-sm text-gray-600">
-                      Employee No:{" "}
-                      <span className="font-semibold">
-                        {selectedEmployeeData.employeeNumber}
-                      </span>
-                    </p>
+  Contact:{" "}
+  <span className="font-semibold">
+    {selectedEmployeeData.contactNumber || "-"}
+  </span>
+</p>
                   </div>
 
                   <div className="rounded-xl bg-white px-6 py-4 text-center shadow-sm">
@@ -608,38 +920,38 @@ const branchEmployeeAdvanceData = useMemo(() => {
               </div>
             )}
 
-          {/* ================= SELECTED BRANCH ================= */}
-          {reportType === "branch" && selectedBranch && (
-            <div className="mb-6 rounded-2xl border border-[#f5b942]/40 bg-[#fff9eb] p-5">
+{/* ================= SELECTED BRANCH ================= */}
+{reportType === "branch" && selectedBranch && (
+  <div className="mb-6 rounded-2xl border border-[#f5b942]/40 bg-[#fff9eb] p-5">
 
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Branch Advance Payment Report
-                  </p>
+      <div>
+        <p className="text-sm text-gray-500">
+          Branch Advance Payment Report
+        </p>
 
-                  <h2 className="mt-1 text-2xl font-bold text-gray-900">
-                    {selectedBranch}
-                  </h2>
-                </div>
+        <h2 className="mt-1 text-2xl font-bold text-gray-900">
+          {selectedBranchData?.name ?? "Selected Branch"}
+        </h2>
+      </div>
 
-                <div className="rounded-xl bg-white px-6 py-4 text-center shadow-sm">
+      <div className="rounded-xl bg-white px-6 py-4 text-center shadow-sm">
 
-                  <p className="text-xs uppercase tracking-wide text-gray-500">
-                    Advance Payments
-                  </p>
+        <p className="text-xs uppercase tracking-wide text-gray-500">
+          Advance Payments
+        </p>
 
-                  <p className="mt-1 text-xl font-bold text-gray-900">
-                    {filteredAdvances.length}
-                  </p>
+        <p className="mt-1 text-xl font-bold text-gray-900">
+          {filteredAdvances.length}
+        </p>
 
-                </div>
+      </div>
 
-              </div>
+    </div>
 
-            </div>
-          )}
+  </div>
+)}
 
 {/* ================= BRANCH EMPLOYEE ADVANCE CHART ================= */}
 {reportType === "branch" &&
@@ -656,8 +968,10 @@ const branchEmployeeAdvanceData = useMemo(() => {
 
         <p className="mt-1 text-sm text-gray-500">
   {selectedBranch
-    ? `Total advance taken by employees of ${selectedBranch} branch`
-    : "Total advance payment across all branches"}
+  ? `Total advance taken by employees of ${
+      selectedBranchData?.name ?? "selected"
+    } branch`
+  : "Total advance payment across all branches"}
 </p>
 
       </div>
@@ -804,17 +1118,13 @@ const branchEmployeeAdvanceData = useMemo(() => {
     data={advanceExportData}
     columns={[
       ...(reportType === "branch"
-        ? [
-            {
-              header: "Employee",
-              key: "employee" as keyof (typeof advanceExportData)[number],
-            },
-            {
-              header: "Employee No",
-              key: "employeeNumber" as keyof (typeof advanceExportData)[number],
-            },
-          ]
-        : []),
+  ? [
+      {
+        header: "Employee",
+        key: "employee" as keyof (typeof advanceExportData)[number],
+      },
+    ]
+  : []),
       {
         header: "Date",
         key: "date",
@@ -847,20 +1157,19 @@ const branchEmployeeAdvanceData = useMemo(() => {
                 <thead>
                   <tr className="bg-[#17191d] text-left text-sm text-white">
 
-                    {reportType === "branch" && (
-                      <>
-                        <th className="px-6 py-4 font-semibold">
-                          Employee
-                        </th>
+                    <th className="px-6 py-4 font-semibold">
+      Employee
+    </th>
 
-                        <th className="px-6 py-4 font-semibold">
-                          Employee No
-                        </th>
-                        <th className="px-6 py-4 font-semibold">
-  Branch
-</th>
-                      </>
-                    )}
+                  {reportType === "branch" && (
+  <>
+    
+
+    <th className="px-6 py-4 font-semibold">
+      Branch
+    </th>
+  </>
+)}
 
                     <th className="px-6 py-4 font-semibold">
                       Date
@@ -896,26 +1205,21 @@ const branchEmployeeAdvanceData = useMemo(() => {
                           className="border-b border-gray-100 transition hover:bg-[#fffaf0]"
                         >
 
-                          {reportType === "branch" && (
-                            <>
-                              <td className="px-6 py-4 text-sm font-semibold text-gray-800">
-                                {advance.employee}
-                              </td>
-
-                              <td className="px-6 py-4 text-sm text-gray-600">
-                                {advance.employeeNumber}
-                              </td>
-                              <td className="px-6 py-4">
-  <span
-    className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getBranchColor(
-      advance.branch
-    )}`}
-  >
-    {advance.branch}
-  </span>
+                          <td className="px-6 py-4 text-sm font-semibold text-gray-800">
+  {advance.employee}
 </td>
-                            </>
-                          )}
+
+{reportType === "branch" && (
+  <td className="px-6 py-4">
+    <span
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getBranchColor(
+        advance.branch
+      )}`}
+    >
+      {advance.branch}
+    </span>
+  </td>
+)}
 
                           <td className="px-6 py-4 text-sm font-medium text-gray-800">
                             {advance.date}
@@ -942,7 +1246,7 @@ const branchEmployeeAdvanceData = useMemo(() => {
                     <tr>
 
                       <td
-                        colSpan={reportType === "branch" ? 7 : 4}
+                        colSpan={reportType === "branch" ? 6 : 5}
                         className="px-6 py-12 text-center"
                       >
 
@@ -995,6 +1299,7 @@ const branchEmployeeAdvanceData = useMemo(() => {
                   : "Total Advance Payment Calculation"}
 
               </h2>
+              
 
               <p className="mt-1 text-sm text-gray-400">
 

@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+
 import Navbar from "@/app/components/Navbar";
 import ExportTable from "@/app/components/ExportTable";
 import FormSelect from "@/app/components/forms/FormSelect";
 
-import { advances, branches } from "@/app/data/advanceData";
+import { supabase } from "@/app/lib/supabase";
+import { toast } from "react-toastify";
 
 import {
   Plus,
@@ -17,9 +19,32 @@ import {
   UserRound,
   IndianRupee,
   RotateCcw,
+  ArrowLeft,
 } from "lucide-react";
 
 type PeriodFilter = "all" | "day" | "week" | "month" | "year";
+
+type Employee = {
+  id: string;
+  name: string;
+};
+
+type Branch = {
+  id: string;
+  name: string;
+};
+
+type Advance = {
+  id: string;
+  employeeId: string;
+  branchId: string;
+  employee: string;
+  branch: string;
+  cash: number;
+  online: number;
+  description: string;
+  date: string;
+};
 
 export default function AdvancePaymentsPage() {
   const [search, setSearch] = useState("");
@@ -27,9 +52,206 @@ export default function AdvancePaymentsPage() {
   const [selectedBranch, setSelectedBranch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
 
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [advances, setAdvances] = useState<Advance[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // =========================================================
+  // FETCH DATA FROM SUPABASE
+  // =========================================================
+
+  useEffect(() => {
+    const fetchAdvanceData = async () => {
+      try {
+        setLoading(true);
+
+        // =====================================================
+        // FETCH EMPLOYEES
+        // =====================================================
+
+        const {
+          data: employeeData,
+          error: employeeError,
+        } = await supabase
+          .from("employees")
+          .select("id, name")
+          .order("name", { ascending: true });
+
+        if (employeeError) {
+          console.error(
+            "Employee fetch error:",
+            employeeError
+          );
+
+          toast.error("Failed to load employees.");
+          return;
+        }
+
+        const formattedEmployees: Employee[] =
+          (employeeData ?? []).map((employee) => ({
+            id: employee.id,
+            name: employee.name,
+          }));
+
+        setEmployees(formattedEmployees);
+
+        // =====================================================
+        // FETCH BRANCHES
+        // =====================================================
+
+        const {
+          data: branchData,
+          error: branchError,
+        } = await supabase
+          .from("branches")
+          .select("id, name")
+          .order("name", { ascending: true });
+
+        if (branchError) {
+          console.error(
+            "Branch fetch error:",
+            branchError
+          );
+
+          toast.error("Failed to load branches.");
+          return;
+        }
+
+        const formattedBranches: Branch[] =
+          (branchData ?? []).map((branch) => ({
+            id: branch.id,
+            name: branch.name,
+          }));
+
+        setBranches(formattedBranches);
+
+        // =====================================================
+        // CREATE EMPLOYEE MAP
+        // =====================================================
+
+        const employeeMap = new Map(
+          formattedEmployees.map((employee) => [
+            employee.id,
+            employee,
+          ])
+        );
+
+        // =====================================================
+        // CREATE BRANCH MAP
+        // =====================================================
+
+        const branchMap = new Map(
+          formattedBranches.map((branch) => [
+            branch.id,
+            branch,
+          ])
+        );
+
+        // =====================================================
+        // FETCH ADVANCE PAYMENTS
+        // =====================================================
+
+        const {
+          data: advanceData,
+          error: advanceError,
+        } = await supabase
+          .from("advance_payments")
+          .select(`
+            id,
+            employee_id,
+            branch_id,
+            cash,
+            online,
+            description,
+            advance_date
+          `)
+          .order("advance_date", {
+            ascending: false,
+          });
+
+        if (advanceError) {
+          console.error(
+            "Advance payment fetch error:",
+            advanceError
+          );
+
+          toast.error(
+            "Failed to load advance payments."
+          );
+
+          return;
+        }
+
+        // =====================================================
+        // FORMAT ADVANCE DATA
+        // =====================================================
+
+        const formattedAdvances: Advance[] =
+          (advanceData ?? []).map((advance) => {
+            const employee = employeeMap.get(
+              advance.employee_id
+            );
+
+            const branch = branchMap.get(
+              advance.branch_id
+            );
+
+            return {
+              id: advance.id,
+
+              employeeId: advance.employee_id,
+
+              branchId: advance.branch_id,
+
+              employee:
+                employee?.name ?? "Unknown Employee",
+
+              branch:
+                branch?.name ?? "Unknown Branch",
+
+              cash: Number(advance.cash ?? 0),
+
+              online: Number(advance.online ?? 0),
+
+              description:
+                advance.description ?? "",
+
+              date: advance.advance_date,
+            };
+          });
+
+        setAdvances(formattedAdvances);
+      } catch (error) {
+        console.error(
+          "Unexpected advance error:",
+          error
+        );
+
+        toast.error(
+          "Something went wrong while loading advance payments."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAdvanceData();
+  }, []);
+
+  // =========================================================
+  // TODAY
+  // =========================================================
+
   const today = new Date();
 
-  const getStartDate = (filter: PeriodFilter) => {
+  // =========================================================
+  // GET START DATE
+  // =========================================================
+
+  const getStartDate = (
+    filter: PeriodFilter
+  ) => {
     const date = new Date(today);
 
     if (filter === "day") {
@@ -54,42 +276,86 @@ export default function AdvancePaymentsPage() {
     return null;
   };
 
+  // =========================================================
+  // BRANCH COLORS
+  // =========================================================
+
+  const branchColorClasses = [
+    "bg-blue-100 text-blue-700",
+    "bg-green-100 text-green-700",
+    "bg-purple-100 text-purple-700",
+    "bg-orange-100 text-orange-700",
+    "bg-pink-100 text-pink-700",
+    "bg-cyan-100 text-cyan-700",
+    "bg-yellow-100 text-yellow-700",
+    "bg-indigo-100 text-indigo-700",
+  ];
+
+  const getBranchColor = (
+    branchId: string
+  ) => {
+    const index = branches.findIndex(
+      (branch) => branch.id === branchId
+    );
+
+    return branchColorClasses[
+      index >= 0
+        ? index % branchColorClasses.length
+        : 0
+    ];
+  };
+
+  // =========================================================
+  // FILTER ADVANCES
+  // =========================================================
+
   const filteredAdvances = useMemo(() => {
     const startDate = getStartDate(period);
 
     return advances
       .filter((advance) => {
-        /*
-         * SEARCH
-         * Employee name
-         * Employee number
-         * Advance amount
-         */
-        const searchValue = search.trim().toLowerCase();
+        // ===================================================
+        // SEARCH
+        // Employee Name
+        // Description
+        // Advance Amount
+        // ===================================================
 
-        const totalAmount = advance.cash + advance.online;
+        const searchValue =
+          search.trim().toLowerCase();
+
+        const totalAmount =
+          advance.cash + advance.online;
 
         const matchesSearch =
           !searchValue ||
-          advance.employee.toLowerCase().includes(searchValue) ||
-          advance.employeeNumber
+          advance.employee
+            .toLowerCase()
+            .includes(searchValue) ||
+          advance.description
             .toLowerCase()
             .includes(searchValue) ||
           String(totalAmount).includes(searchValue);
 
-        /*
-         * BRANCH FILTER
-         */
-        const matchesBranch =
-          !selectedBranch || advance.branch === selectedBranch;
+        // ===================================================
+        // BRANCH FILTER
+        // ===================================================
 
-        /*
-         * PERIOD FILTER
-         */
-        const advanceDate = new Date(`${advance.date}T00:00:00`);
+        const matchesBranch =
+          !selectedBranch ||
+          advance.branchId === selectedBranch;
+
+        // ===================================================
+        // PERIOD FILTER
+        // ===================================================
+
+        const advanceDate = new Date(
+          `${advance.date}T00:00:00`
+        );
 
         const matchesPeriod =
-          !startDate || advanceDate >= startDate;
+          !startDate ||
+          advanceDate >= startDate;
 
         return (
           matchesSearch &&
@@ -97,54 +363,71 @@ export default function AdvancePaymentsPage() {
           matchesPeriod
         );
       })
-      .sort((a, b) => b.date.localeCompare(a.date));
-  }, [search, period, selectedBranch]);
+      .sort((a, b) =>
+        b.date.localeCompare(a.date)
+      );
+  }, [
+    advances,
+    search,
+    period,
+    selectedBranch,
+  ]);
 
-  /*
-   * =========================
-   * TOTALS
-   * =========================
-   */
+  // =========================================================
+  // TOTAL ADVANCE
+  // =========================================================
 
-  const totalAdvance = filteredAdvances.reduce(
-    (total, advance) =>
-      total + advance.cash + advance.online,
-    0
-  );
+  const totalAdvance =
+    filteredAdvances.reduce(
+      (total, advance) =>
+        total +
+        advance.cash +
+        advance.online,
+      0
+    );
 
-  const totalCash = filteredAdvances.reduce(
-    (total, advance) =>
-      total + advance.cash,
-    0
-  );
+  // =========================================================
+  // TOTAL CASH
+  // =========================================================
 
-  const totalOnline = filteredAdvances.reduce(
-    (total, advance) =>
-      total + advance.online,
-    0
-  );
+  const totalCash =
+    filteredAdvances.reduce(
+      (total, advance) =>
+        total + advance.cash,
+      0
+    );
 
-  /*
-   * =========================
-   * EXPORT DATA
-   * =========================
-   */
+  // =========================================================
+  // TOTAL ONLINE
+  // =========================================================
 
-  const exportData = filteredAdvances.map((advance) => ({
-    employee: advance.employee,
-    employeeNumber: advance.employeeNumber,
-    branch: advance.branch,
-    date: advance.date,
-    cash: advance.cash,
-    online: advance.online,
-    total: advance.cash + advance.online,
-  }));
+  const totalOnline =
+    filteredAdvances.reduce(
+      (total, advance) =>
+        total + advance.online,
+      0
+    );
 
-  /*
-   * =========================
-   * RESET
-   * =========================
-   */
+  // =========================================================
+  // EXPORT DATA
+  // =========================================================
+
+  const exportData =
+    filteredAdvances.map((advance) => ({
+      employee: advance.employee,
+      description: advance.description,
+      branch: advance.branch,
+      date: advance.date,
+      cash: advance.cash,
+      online: advance.online,
+      total:
+        advance.cash +
+        advance.online,
+    }));
+
+  // =========================================================
+  // RESET FILTERS
+  // =========================================================
 
   const resetFilters = () => {
     setSearch("");
@@ -152,23 +435,33 @@ export default function AdvancePaymentsPage() {
     setSelectedBranch("");
   };
 
+  // =========================================================
+  // PAGE
+  // =========================================================
+
   return (
     <main className="min-h-screen bg-[#f5f6f8]">
 
-      {/* ================= NAVBAR ================= */}
+      {/* =====================================================
+          NAVBAR
+      ===================================================== */}
 
       <div className="relative bg-[#17191d]">
         <Navbar />
+
         <div className="h-24" />
       </div>
 
-      {/* ================= PAGE ================= */}
+      {/* =====================================================
+          PAGE
+      ===================================================== */}
 
       <section className="px-5 py-8 md:px-8">
-
         <div className="mx-auto max-w-7xl">
 
-          {/* ================= HEADER ================= */}
+          {/* =================================================
+              HEADER
+          ================================================= */}
 
           <div className="mb-7 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
@@ -176,7 +469,21 @@ export default function AdvancePaymentsPage() {
 
               <div className="flex items-center gap-3">
 
+                {/* BACK BUTTON */}
+
+                <Link
+                  href="/management/admin"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-[#f5b942] hover:bg-[#fff9eb] hover:text-[#a86f00]"
+                  title="Back to Admin Dashboard"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+
+                {/* GOLD LINE */}
+
                 <div className="h-8 w-1 rounded-full bg-[#f5b942]" />
+
+                {/* PAGE TITLE */}
 
                 <h1 className="text-3xl font-bold tracking-tight text-[#17191d]">
                   Advance Payments
@@ -197,13 +504,14 @@ export default function AdvancePaymentsPage() {
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#17191d] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-black"
             >
               <Plus className="h-4 w-4" />
-
               Add Advance
             </Link>
 
           </div>
 
-          {/* ================= SEARCH + FILTER ================= */}
+          {/* =================================================
+              SEARCH + FILTER
+          ================================================= */}
 
           <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
 
@@ -221,13 +529,13 @@ export default function AdvancePaymentsPage() {
                   onChange={(e) =>
                     setSearch(e.target.value)
                   }
-                  placeholder="Search employee name, employee number or amount..."
+                  placeholder="Search employee name, description or amount..."
                   className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 pl-11 pr-4 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-[#d59618] focus:bg-white focus:ring-2 focus:ring-[#f5b942]/20"
                 />
 
               </div>
 
-              {/* FILTER */}
+              {/* FILTER BUTTON */}
 
               <button
                 type="button"
@@ -241,7 +549,6 @@ export default function AdvancePaymentsPage() {
                 }`}
               >
                 <SlidersHorizontal className="h-4 w-4" />
-
                 Filters
               </button>
 
@@ -253,13 +560,14 @@ export default function AdvancePaymentsPage() {
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
               >
                 <RotateCcw className="h-4 w-4" />
-
                 Reset
               </button>
 
             </div>
 
-            {/* FILTER OPTIONS */}
+            {/* =================================================
+                FILTER OPTIONS
+            ================================================= */}
 
             {showFilters && (
               <div className="mt-5 grid grid-cols-1 gap-4 border-t border-gray-100 pt-5 md:grid-cols-2">
@@ -306,36 +614,48 @@ export default function AdvancePaymentsPage() {
 
                 {/* BRANCH */}
 
-                <FormSelect
-                  label="Branch"
-                  value={selectedBranch}
-                  onChange={(e) =>
-                    setSelectedBranch(e.target.value)
-                  }
-                  options={[
-                    {
-                      label: "All Branches",
-                      value: "",
-                    },
+                <div>
 
-                    ...branches.map((branch) => ({
-                      label: branch,
-                      value: branch,
-                    })),
-                  ]}
-                />
+                  <FormSelect
+                    label="Branch"
+                    value={selectedBranch}
+                    onChange={(e) =>
+                      setSelectedBranch(
+                        e.target.value
+                      )
+                    }
+                    options={[
+                      {
+                        label: "All Branches",
+                        value: "",
+                      },
+
+                      ...branches.map(
+                        (branch) => ({
+                          label: branch.name,
+                          value: branch.id,
+                        })
+                      ),
+                    ]}
+                  />
+
+                </div>
 
               </div>
             )}
 
           </div>
 
-          {/* ================= SUMMARY CARDS ================= */}
+          {/* =================================================
+              SUMMARY CARDS
+          ================================================= */}
 
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
             <SummaryCard
-              icon={<Wallet className="h-5 w-5" />}
+              icon={
+                <Wallet className="h-5 w-5" />
+              }
               title="Recent Advances"
               value={filteredAdvances.length.toString()}
               subtitle="Payments found"
@@ -343,32 +663,46 @@ export default function AdvancePaymentsPage() {
             />
 
             <SummaryCard
-              icon={<IndianRupee className="h-5 w-5" />}
+              icon={
+                <IndianRupee className="h-5 w-5" />
+              }
               title="Total Advance"
-              value={`₹${totalAdvance.toLocaleString("en-IN")}`}
+              value={`₹${totalAdvance.toLocaleString(
+                "en-IN"
+              )}`}
               subtitle="Filtered amount"
               iconClass="bg-emerald-50 text-emerald-600"
             />
 
             <SummaryCard
-              icon={<Wallet className="h-5 w-5" />}
+              icon={
+                <Wallet className="h-5 w-5" />
+              }
               title="Cash"
-              value={`₹${totalCash.toLocaleString("en-IN")}`}
+              value={`₹${totalCash.toLocaleString(
+                "en-IN"
+              )}`}
               subtitle="Cash advances"
               iconClass="bg-blue-50 text-blue-600"
             />
 
             <SummaryCard
-              icon={<Building2 className="h-5 w-5" />}
+              icon={
+                <Building2 className="h-5 w-5" />
+              }
               title="Online"
-              value={`₹${totalOnline.toLocaleString("en-IN")}`}
+              value={`₹${totalOnline.toLocaleString(
+                "en-IN"
+              )}`}
               subtitle="Online advances"
               iconClass="bg-violet-50 text-violet-600"
             />
 
           </div>
 
-          {/* ================= TABLE HEADER ================= */}
+          {/* =================================================
+              TABLE HEADER
+          ================================================= */}
 
           <div className="mt-8 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
@@ -384,7 +718,7 @@ export default function AdvancePaymentsPage() {
 
             </div>
 
-            {/* EXISTING EXPORT COMPONENT */}
+            {/* EXPORT */}
 
             <ExportTable
               data={exportData}
@@ -394,8 +728,8 @@ export default function AdvancePaymentsPage() {
                   key: "employee",
                 },
                 {
-                  header: "Employee No",
-                  key: "employeeNumber",
+                  header: "Description",
+                  key: "description",
                 },
                 {
                   header: "Branch",
@@ -424,13 +758,19 @@ export default function AdvancePaymentsPage() {
 
           </div>
 
-          {/* ================= TABLE ================= */}
+          {/* =================================================
+              TABLE
+          ================================================= */}
 
           <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
 
             <div className="overflow-x-auto">
 
               <table className="w-full min-w-[850px] text-left">
+
+                {/* =================================================
+                    TABLE HEAD
+                ================================================= */}
 
                 <thead className="border-b border-gray-200 bg-[#fafafa]">
 
@@ -441,7 +781,7 @@ export default function AdvancePaymentsPage() {
                     </th>
 
                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">
-                      Employee No
+                      Description
                     </th>
 
                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">
@@ -468,26 +808,57 @@ export default function AdvancePaymentsPage() {
 
                 </thead>
 
+                {/* =================================================
+                    TABLE BODY
+                ================================================= */}
+
                 <tbody className="divide-y divide-gray-100">
 
-                  {filteredAdvances.length > 0 ? (
+                  {loading ? (
+
+                    <tr>
+
+                      <td
+                        colSpan={7}
+                        className="px-6 py-16 text-center"
+                      >
+
+                        <div className="flex flex-col items-center justify-center">
+
+                          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-[#f5b942]" />
+
+                          <p className="mt-3 text-sm font-medium text-gray-500">
+                            Loading advance payments...
+                          </p>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+
+                  ) : filteredAdvances.length > 0 ? (
 
                     filteredAdvances.map(
                       (advance, index) => (
 
                         <tr
-                          key={`${advance.employeeNumber}-${advance.date}-${index}`}
+                          key={`${advance.id}-${advance.date}-${index}`}
                           className="transition hover:bg-[#fffaf0]"
                         >
 
-                          {/* EMPLOYEE */}
+                          {/* =================================================
+                              EMPLOYEE
+                          ================================================= */}
 
                           <td className="px-6 py-4">
 
                             <div className="flex items-center gap-3">
 
                               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
+
                                 <UserRound className="h-4 w-4" />
+
                               </div>
 
                               <span className="text-sm font-semibold text-[#17191d]">
@@ -498,56 +869,84 @@ export default function AdvancePaymentsPage() {
 
                           </td>
 
-                          {/* EMPLOYEE NUMBER */}
+                          {/* =================================================
+                              DESCRIPTION
+                          ================================================= */}
 
                           <td className="px-6 py-4 text-sm text-gray-600">
-                            {advance.employeeNumber}
+                            {advance.description || "-"}
                           </td>
 
-                          {/* BRANCH */}
+                          {/* =================================================
+                              BRANCH
+                          ================================================= */}
 
                           <td className="px-6 py-4">
 
-                            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getBranchColor(
+                                advance.branchId
+                              )}`}
+                            >
                               {advance.branch}
                             </span>
 
                           </td>
 
-                          {/* DATE */}
+                          {/* =================================================
+                              DATE
+                          ================================================= */}
 
                           <td className="px-6 py-4 text-sm text-gray-600">
+
                             {new Date(
                               `${advance.date}T00:00:00`
-                            ).toLocaleDateString("en-IN")}
+                            ).toLocaleDateString(
+                              "en-IN"
+                            )}
+
                           </td>
 
-                          {/* CASH */}
+                          {/* =================================================
+                              CASH
+                          ================================================= */}
 
                           <td className="px-6 py-4 text-sm font-medium text-gray-700">
+
                             ₹
                             {advance.cash.toLocaleString(
                               "en-IN"
                             )}
+
                           </td>
 
-                          {/* ONLINE */}
+                          {/* =================================================
+                              ONLINE
+                          ================================================= */}
 
                           <td className="px-6 py-4 text-sm font-medium text-gray-700">
+
                             ₹
                             {advance.online.toLocaleString(
                               "en-IN"
                             )}
+
                           </td>
 
-                          {/* TOTAL */}
+                          {/* =================================================
+                              TOTAL
+                          ================================================= */}
 
                           <td className="px-6 py-4 text-right text-sm font-bold text-[#17191d]">
+
                             ₹
                             {(
                               advance.cash +
                               advance.online
-                            ).toLocaleString("en-IN")}
+                            ).toLocaleString(
+                              "en-IN"
+                            )}
+
                           </td>
 
                         </tr>
@@ -589,7 +988,6 @@ export default function AdvancePaymentsPage() {
           </div>
 
         </div>
-
       </section>
 
     </main>

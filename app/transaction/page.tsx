@@ -35,7 +35,7 @@ type Transaction = {
 };
 
 const [employees, setEmployees] = useState<Employee[]>([]);
-const [branches, setBranches] = useState<string[]>([]);
+const [branches, setBranches] = useState<Branch[]>([]);
 const [transactions, setTransactions] = useState<Transaction[]>([]);
 
 const [loading, setLoading] = useState(true);
@@ -91,8 +91,11 @@ setEmployees(formattedEmployees);
       }
 
       setBranches(
-        (branchData || []).map((branch: any) => branch.name)
-      );
+  (branchData || []).map((branch: any) => ({
+    id: branch.id,
+    name: branch.name,
+  }))
+);
 // =========================
 // FETCH TRANSACTIONS
 // =========================
@@ -208,14 +211,27 @@ const resetFilters = () => {
 };
 const today = new Date().toISOString().split("T")[0];
 
-const getBranchColor = (branch: string) => {
-  const colors: Record<string, string> = {
-    Indore: "bg-blue-100 text-blue-700",
-    Ujjain: "bg-green-100 text-green-700",
-    Bhopal: "bg-purple-100 text-purple-700",
-  };
+const branchColorClasses = [
+  "bg-blue-100 text-blue-700",
+  "bg-green-100 text-green-700",
+  "bg-purple-100 text-purple-700",
+  "bg-orange-100 text-orange-700",
+  "bg-pink-100 text-pink-700",
+  "bg-cyan-100 text-cyan-700",
+  "bg-yellow-100 text-yellow-700",
+  "bg-indigo-100 text-indigo-700",
+];
 
-  return colors[branch] || "bg-gray-100 text-gray-700";
+const getBranchColor = (branchName: string) => {
+  const index = branches.findIndex(
+    (branch) => branch.name === branchName
+  );
+
+  return branchColorClasses[
+    index >= 0
+      ? index % branchColorClasses.length
+      : 0
+  ];
 };
   // =========================
   // FILTER TRANSACTIONS
@@ -587,10 +603,13 @@ const selectedPeriod =
                     <option value="">All Branch</option>
 
                     {branches.map((branch) => (
-                      <option key={branch} value={branch}>
-                        {branch}
-                      </option>
-                    ))}
+  <option
+  key={branch.id}
+  value={branch.id}
+>
+  {branch.name}
+</option>
+))}
                   </select>
                 </div>
 

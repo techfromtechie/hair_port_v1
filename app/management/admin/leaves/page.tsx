@@ -21,6 +21,7 @@ import {
   Building2,
   CalendarDays,
   FileText,
+  ArrowLeft,
 } from "lucide-react";
 
 // ============================================================
@@ -44,14 +45,16 @@ type LeaveTypeFilter =
 // ============================================================
 
 export default function AdminLeavesPage() {
-     const branches = [
+  const branches = [
     ...new Set(employees.map((employee) => employee.branch)),
   ];
+
   // ==========================================================
   // FILTER STATES
   // ==========================================================
 
   const [search, setSearch] = useState("");
+
   const [period, setPeriod] =
     useState<PeriodFilter>("all");
 
@@ -117,6 +120,7 @@ export default function AdminLeavesPage() {
 
     return leaves
       .filter((leave) => {
+
         // ----------------------------------------------------
         // SEARCH
         // ----------------------------------------------------
@@ -257,8 +261,19 @@ export default function AdminLeavesPage() {
 
               <div className="flex items-center gap-3">
 
+                {/* BACK BUTTON */}
+                <Link
+                  href="/management/admin"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-[#f5b942] hover:bg-[#fff9eb] hover:text-[#a86f00]"
+                  title="Back to Admin Dashboard"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+
+                {/* GOLD LINE */}
                 <div className="h-8 w-1 rounded-full bg-[#f5b942]" />
 
+                {/* TITLE */}
                 <h1 className="text-3xl font-bold tracking-tight text-[#17191d] md:text-4xl">
                   Leaves
                 </h1>
@@ -319,7 +334,6 @@ export default function AdminLeavesPage() {
                 }`}
               >
                 <SlidersHorizontal className="h-4 w-4" />
-
                 Filters
               </button>
 
@@ -331,7 +345,6 @@ export default function AdminLeavesPage() {
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
               >
                 <RotateCcw className="h-4 w-4" />
-
                 Reset
               </button>
 
@@ -361,7 +374,6 @@ export default function AdminLeavesPage() {
                     }
                     className="h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#d59618] focus:ring-2 focus:ring-[#f5b942]/20"
                   >
-
                     <option value="all">
                       All Time
                     </option>
@@ -381,7 +393,6 @@ export default function AdminLeavesPage() {
                     <option value="year">
                       Last 1 Year
                     </option>
-
                   </select>
 
                 </div>
@@ -426,10 +437,12 @@ export default function AdminLeavesPage() {
                       label: "All Leave Types",
                       value: "all",
                     },
+
                     {
                       label: "Full Leave",
                       value: "Full",
                     },
+
                     {
                       label: "Half Leave",
                       value: "Half",
@@ -555,7 +568,6 @@ export default function AdminLeavesPage() {
                   className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#17191d] px-5 text-sm font-semibold text-white transition hover:bg-black"
                 >
                   <Plus className="h-4 w-4" />
-
                   Add Leave
                 </Link>
 
@@ -604,6 +616,7 @@ export default function AdminLeavesPage() {
                   {filteredLeaves.length > 0 ? (
                     filteredLeaves.map(
                       (leave) => (
+
                         <tr
                           key={leave.id}
                           className="border-b border-gray-100 transition last:border-b-0 hover:bg-[#fffaf0]"
@@ -616,9 +629,7 @@ export default function AdminLeavesPage() {
                             <div className="flex items-center gap-3">
 
                               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fff9eb] text-[#a86f00]">
-
                                 <UserRound className="h-4 w-4" />
-
                               </div>
 
                               <div className="font-semibold text-gray-800">
@@ -681,6 +692,7 @@ export default function AdminLeavesPage() {
                           </td>
 
                         </tr>
+
                       )
                     )
                   ) : (
@@ -697,9 +709,7 @@ export default function AdminLeavesPage() {
                         <div className="flex flex-col items-center">
 
                           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
-
                             <Search className="h-6 w-6 text-gray-400" />
-
                           </div>
 
                           <h3 className="mt-4 text-base font-semibold text-gray-900">

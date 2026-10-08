@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+
 import Navbar from "@/app/components/Navbar";
-import { ArrowLeft} from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import EditButton from "@/app/components/EditButton";
 import ExportTable from "@/app/components/ExportTable";
 import Loader from "@/app/components/Loader";
@@ -55,8 +56,6 @@ export default function TransactionReportPage() {
 
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-
-  
 
   // =========================
   // FETCH ALL DATA
@@ -119,6 +118,10 @@ export default function TransactionReportPage() {
         })
       );
 
+      // =========================
+      // FORMAT TRANSACTIONS
+      // =========================
+
       const formattedTransactions: Transaction[] = (
         transactionData || []
       ).map((transaction: any) => {
@@ -130,40 +133,35 @@ export default function TransactionReportPage() {
           (item) => item.id === transaction.branch_id
         );
 
+        const amount = Number(transaction.amount || 0);
+        const paymentMode = transaction.payment_mode || "Other";
+
         return {
           id: transaction.id,
-
           employeeId: transaction.employee_id,
-
           branchId: transaction.branch_id,
 
           employee: employee?.name || "Unknown Employee",
-
           branch: branch?.name || "Unknown Branch",
 
           service: transaction.service || "",
 
-          amount: Number(transaction.amount || 0),
+          amount: amount,
 
-          paymentMode: (transaction.payment_mode ||
-            "Other") as PaymentMode,
+          paymentMode: paymentMode as PaymentMode,
 
           description: transaction.description || "",
 
           date: transaction.transaction_date,
 
-          cash: Number(transaction.cash || 0),
-
-          online: Number(transaction.online || 0),
-
-          other: Number(transaction.other || 0),
+          cash: paymentMode === "Cash" ? amount : 0,
+          online: paymentMode === "Online" ? amount : 0,
+          other: paymentMode === "Other" ? amount : 0,
         };
       });
 
       setEmployees(formattedEmployees);
-
       setBranches(formattedBranches);
-
       setTransactions(formattedTransactions);
     } catch (error: any) {
       console.error("Transaction fetch error:", error);
@@ -179,17 +177,16 @@ export default function TransactionReportPage() {
   useEffect(() => {
     fetchTransactionData();
   }, []);
-
-  // =========================
+    // =========================
   // RESET FILTERS
   // =========================
 
   const resetFilters = () => {
-  setSelectedEmployee("");
-  setSelectedBranch("");
-  setFromDate("");
-  setToDate("");
-};
+    setSelectedEmployee("");
+    setSelectedBranch("");
+    setFromDate("");
+    setToDate("");
+  };
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -247,25 +244,23 @@ export default function TransactionReportPage() {
           !toDate ||
           transaction.date <= toDate;
 
-        
-
-return (
-  matchesEmployee &&
-  matchesBranch &&
-  matchesFromDate &&
-  matchesToDate
-);
+        return (
+          matchesEmployee &&
+          matchesBranch &&
+          matchesFromDate &&
+          matchesToDate
+        );
       })
       .sort((a, b) =>
         b.date.localeCompare(a.date)
       );
 
     if (
-  !selectedEmployee &&
-  !selectedBranch &&
-  !fromDate &&
-  !toDate
-) {
+      !selectedEmployee &&
+      !selectedBranch &&
+      !fromDate &&
+      !toDate
+    ) {
       return filtered.slice(0, 10);
     }
 
@@ -277,7 +272,6 @@ return (
     selectedBranch,
     fromDate,
     toDate,
-  
   ]);
 
   // =========================
@@ -363,8 +357,8 @@ return (
   const isInvalidDateRange =
     Boolean(
       fromDate &&
-        toDate &&
-        fromDate > toDate
+      toDate &&
+      fromDate > toDate
     );
 
   const isReportReady =
@@ -374,34 +368,27 @@ return (
   // UI
   // =========================
 
-  return (
+    return (
     <main className="min-h-screen bg-[#f5f6f8]">
 
       {/* NAVBAR */}
-
       <div className="relative bg-[#17191d]">
         <Navbar />
-
         <div className="h-24" />
       </div>
 
       {/* LOADING */}
-
       {loading ? (
         <Loader
           text="Loading transactions..."
           fullScreen
         />
       ) : (
-
         <section className="px-5 py-10 md:px-8">
-
           <div className="mx-auto max-w-7xl">
 
             {/* PAGE HEADER */}
-
             <div className="mb-8">
-
               <div className="flex items-center gap-3">
 
                 <Link
@@ -423,11 +410,9 @@ return (
                 View, filter, export and edit
                 transaction payments.
               </p>
-
             </div>
 
             {/* REPORT TYPE */}
-
             <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
 
               <p className="mb-4 text-sm font-semibold text-gray-700">
@@ -437,7 +422,6 @@ return (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
                 {/* EMPLOYEE */}
-
                 <button
                   type="button"
                   onClick={() => {
@@ -450,7 +434,6 @@ return (
                       : "border-gray-200 bg-white hover:border-gray-300"
                   }`}
                 >
-
                   <div className="flex items-center gap-3">
 
                     <div
@@ -464,7 +447,6 @@ return (
                     </div>
 
                     <div>
-
                       <h3 className="font-semibold text-gray-900">
                         Employee Wise Report
                       </h3>
@@ -473,15 +455,12 @@ return (
                         View transaction history
                         of an employee
                       </p>
-
                     </div>
 
                   </div>
-
                 </button>
 
                 {/* BRANCH */}
-
                 <button
                   type="button"
                   onClick={() => {
@@ -494,7 +473,6 @@ return (
                       : "border-gray-200 bg-white hover:border-gray-300"
                   }`}
                 >
-
                   <div className="flex items-center gap-3">
 
                     <div
@@ -508,7 +486,6 @@ return (
                     </div>
 
                     <div>
-
                       <h3 className="font-semibold text-gray-900">
                         Branch Wise Report
                       </h3>
@@ -517,23 +494,18 @@ return (
                         View transactions of a
                         particular branch
                       </p>
-
                     </div>
 
                   </div>
-
                 </button>
 
               </div>
-
             </div>
 
             {/* FILTER CARD */}
-
             <div className="mb-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
 
               <div className="mb-5">
-
                 <h2 className="text-lg font-bold text-gray-900">
                   Report Filters
                 </h2>
@@ -542,18 +514,13 @@ return (
                   Select the required details
                   to generate the report.
                 </p>
-
               </div>
 
-
               {/* EMPLOYEE FILTER */}
-
               {reportType === "employee" && (
-
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
 
                   <div>
-
                     <label className="mb-2 block text-sm font-semibold text-gray-700">
                       Employee
                     </label>
@@ -561,36 +528,26 @@ return (
                     <select
                       value={selectedEmployee}
                       onChange={(e) =>
-                        setSelectedEmployee(
-                          e.target.value
-                        )
+                        setSelectedEmployee(e.target.value)
                       }
                       className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
                     >
-
                       <option value="">
                         All Employees
                       </option>
 
-                      {employees.map(
-                        (employee) => (
-
-                          <option
-                            key={employee.id}
-                            value={employee.id}
-                          >
-                            {employee.name}
-                          </option>
-
-                        )
-                      )}
-
+                      {employees.map((employee) => (
+                        <option
+                          key={employee.id}
+                          value={employee.id}
+                        >
+                          {employee.name}
+                        </option>
+                      ))}
                     </select>
-
                   </div>
 
                   <div>
-
                     <label className="mb-2 block text-sm font-semibold text-gray-700">
                       From Date
                     </label>
@@ -600,17 +557,13 @@ return (
                       value={fromDate}
                       max={today}
                       onChange={(e) =>
-                        setFromDate(
-                          e.target.value
-                        )
+                        setFromDate(e.target.value)
                       }
                       className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
                     />
-
                   </div>
 
                   <div>
-
                     <label className="mb-2 block text-sm font-semibold text-gray-700">
                       To Date
                     </label>
@@ -618,32 +571,23 @@ return (
                     <input
                       type="date"
                       value={toDate}
-                      min={
-                        fromDate || undefined
-                      }
+                      min={fromDate || undefined}
                       max={today}
                       onChange={(e) =>
-                        setToDate(
-                          e.target.value
-                        )
+                        setToDate(e.target.value)
                       }
                       className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
                     />
-
                   </div>
 
                 </div>
-
               )}
 
               {/* BRANCH FILTER */}
-
               {reportType === "branch" && (
-
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
 
                   <div>
-
                     <label className="mb-2 block text-sm font-semibold text-gray-700">
                       Branch
                     </label>
@@ -651,36 +595,26 @@ return (
                     <select
                       value={selectedBranch}
                       onChange={(e) =>
-                        setSelectedBranch(
-                          e.target.value
-                        )
+                        setSelectedBranch(e.target.value)
                       }
                       className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
                     >
-
                       <option value="">
                         All Branches
                       </option>
 
-                      {branches.map(
-                        (branch) => (
-
-                          <option
-                            key={branch.id}
-                            value={branch.id}
-                          >
-                            {branch.name}
-                          </option>
-
-                        )
-                      )}
-
+                      {branches.map((branch) => (
+                        <option
+                          key={branch.id}
+                          value={branch.id}
+                        >
+                          {branch.name}
+                        </option>
+                      ))}
                     </select>
-
                   </div>
 
                   <div>
-
                     <label className="mb-2 block text-sm font-semibold text-gray-700">
                       From Date
                     </label>
@@ -690,17 +624,13 @@ return (
                       value={fromDate}
                       max={today}
                       onChange={(e) =>
-                        setFromDate(
-                          e.target.value
-                        )
+                        setFromDate(e.target.value)
                       }
                       className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
                     />
-
                   </div>
 
                   <div>
-
                     <label className="mb-2 block text-sm font-semibold text-gray-700">
                       To Date
                     </label>
@@ -708,46 +638,39 @@ return (
                     <input
                       type="date"
                       value={toDate}
-                      min={
-                        fromDate || undefined
-                      }
+                      min={fromDate || undefined}
                       max={today}
                       onChange={(e) =>
-                        setToDate(
-                          e.target.value
-                        )
+                        setToDate(e.target.value)
                       }
                       className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
                     />
-
                   </div>
 
                 </div>
-
               )}
-<div className="mt-5 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-  <p className="text-sm text-gray-600">
-    {!selectedEmployee &&
-    !selectedBranch &&
-    !fromDate &&
-    !toDate
-      ? "Showing latest transactions. Use filters to view specific transaction history."
-      : "Showing transactions based on the selected filters."}
-  </p>
-</div>
+
+              <div className="mt-5 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                <p className="text-sm text-gray-600">
+                  {!selectedEmployee &&
+                  !selectedBranch &&
+                  !fromDate &&
+                  !toDate
+                    ? "Showing latest transactions. Use filters to view specific transaction history."
+                    : "Showing transactions based on the selected filters."}
+                </p>
+              </div>
+
             </div>
 
             {/* SELECTED EMPLOYEE */}
-
             {reportType === "employee" &&
               selectedEmployeeData && (
-
                 <div className="mb-6 rounded-2xl border border-[#f5b942]/40 bg-[#fff9eb] p-5">
 
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
                     <div>
-
                       <p className="text-sm text-gray-500">
                         Employee Transaction Report
                       </p>
@@ -760,11 +683,9 @@ return (
                         Transaction history of
                         selected employee
                       </p>
-
                     </div>
 
                     <div className="rounded-xl bg-white px-6 py-4 text-center shadow-sm">
-
                       <p className="text-xs uppercase tracking-wide text-gray-500">
                         Transactions
                       </p>
@@ -772,23 +693,17 @@ return (
                       <p className="mt-1 text-xl font-bold text-gray-900">
                         {filteredTransactions.length}
                       </p>
-
                     </div>
 
                   </div>
-
                 </div>
-
               )}
 
             {/* BRANCH SUMMARY */}
-
             {reportType === "branch" && (
-
               <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
 
                 <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-
                   <p className="text-sm font-medium text-gray-500">
                     Total Employees
                   </p>
@@ -796,11 +711,9 @@ return (
                   <p className="mt-1 text-2xl font-bold text-gray-900">
                     {branchTotalEmployees}
                   </p>
-
                 </div>
 
                 <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-
                   <p className="text-sm font-medium text-gray-500">
                     Total Transactions
                   </p>
@@ -810,11 +723,9 @@ return (
                       "en-IN"
                     )}
                   </p>
-
                 </div>
 
                 <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-
                   <p className="text-sm font-medium text-gray-500">
                     Total Sales Amount
                   </p>
@@ -825,11 +736,9 @@ return (
                       "en-IN"
                     )}
                   </p>
-
                 </div>
 
                 <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-
                   <p className="text-sm font-medium text-gray-500">
                     Selected Period
                   </p>
@@ -837,21 +746,17 @@ return (
                   <p className="mt-1 text-sm font-bold text-gray-900">
                     {selectedPeriod}
                   </p>
-
                 </div>
 
               </div>
-
             )}
 
             {/* TRANSACTION TABLE */}
-
             <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
 
               <div className="flex flex-col gap-4 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
 
                 <div>
-
                   <h2 className="text-lg font-bold text-gray-900">
                     {reportType === "employee"
                       ? "Transaction History"
@@ -861,74 +766,71 @@ return (
                   <p className="mt-1 text-sm text-gray-500">
                     {filteredTransactions.length}{" "}
                     transaction
-                    {filteredTransactions.length !==
-                    1
+                    {filteredTransactions.length !== 1
                       ? "s"
                       : ""}{" "}
                     found
                   </p>
-
                 </div>
 
-               {/* EXPORT + RESET */}
-<div className="flex flex-wrap items-center gap-3">
-  <button
-    type="button"
-    onClick={resetFilters}
-    className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-[#f5b942] hover:bg-[#fff9eb] hover:text-gray-900"
-  >
-    Reset Filters
-  </button>
+                {/* EXPORT + RESET */}
+                <div className="flex flex-wrap items-center gap-3">
 
-  <ExportTable
-    data={transactionExportData}
-    columns={[
-      {
-        header: "Date",
-        key: "date",
-      },
-      {
-        header: "Branch",
-        key: "branch",
-      },
-      {
-        header: "Employee Name",
-        key: "employee",
-      },
-      {
-        header: "Cash",
-        key: "cash",
-      },
-      {
-        header: "Online",
-        key: "online",
-      },
-      {
-        header: "Other",
-        key: "other",
-      },
-      {
-        header: "Total",
-        key: "total",
-      },
-    ]}
-    fileName={
-      reportType === "employee"
-        ? "Employee-Transaction-Report"
-        : "Branch-Wise-Employee-Transactions"
-    }
-    disabled={!isReportReady}
-  />
-</div>
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-[#f5b942] hover:bg-[#fff9eb] hover:text-gray-900"
+                  >
+                    Reset Filters
+                  </button>
 
+                  <ExportTable
+                    data={transactionExportData}
+                    columns={[
+                      {
+                        header: "Date",
+                        key: "date",
+                      },
+                      {
+                        header: "Branch",
+                        key: "branch",
+                      },
+                      {
+                        header: "Employee Name",
+                        key: "employee",
+                      },
+                      {
+                        header: "Cash",
+                        key: "cash",
+                      },
+                      {
+                        header: "Online",
+                        key: "online",
+                      },
+                      {
+                        header: "Other",
+                        key: "other",
+                      },
+                      {
+                        header: "Total",
+                        key: "total",
+                      },
+                    ]}
+                    fileName={
+                      reportType === "employee"
+                        ? "Employee-Transaction-Report"
+                        : "Branch-Wise-Employee-Transactions"
+                    }
+                    disabled={!isReportReady}
+                  />
+
+                </div>
               </div>
 
               <div className="overflow-x-auto">
-
                 <table className="w-full min-w-[1100px]">
 
                   <thead>
-
                     <tr className="bg-[#17191d] text-left text-sm text-white">
 
                       <th className="px-6 py-4 font-semibold">
@@ -946,16 +848,17 @@ return (
                       </th>
 
                       <th className="px-6 py-4 text-right font-semibold">
-  Cash
-</th>
+                        Cash
+                      </th>
 
-                     <th className="px-6 py-4 text-right font-semibold">
-  Online
-</th>
+                      <th className="px-6 py-4 text-right font-semibold">
+                        Online
+                      </th>
 
-                     <th className="px-6 py-4 text-right font-semibold">
-  Other
-</th>
+                      <th className="px-6 py-4 text-right font-semibold">
+                        Other
+                      </th>
+
                       <th className="px-6 py-4 text-right font-semibold">
                         Total
                       </th>
@@ -965,104 +868,87 @@ return (
                       </th>
 
                     </tr>
-
                   </thead>
 
                   <tbody>
+                    {filteredTransactions.length > 0 ? (
+                      filteredTransactions.map((transaction) => {
 
-                    {filteredTransactions.length >
-                    0 ? (
+                        const total =
+                          transaction.cash +
+                          transaction.online +
+                          transaction.other;
 
-                      filteredTransactions.map(
-                        (transaction) => {
+                        return (
+                          <tr
+                            key={transaction.id}
+                            className="border-b border-gray-100 transition hover:bg-[#fffaf0]"
+                          >
 
-                          const total =
-                            transaction.cash +
-                            transaction.online +
-                            transaction.other;
+                            <td className="px-6 py-4 text-sm font-semibold text-gray-800">
+                              {transaction.employee}
+                            </td>
 
-                          return (
-
-                            <tr
-                              key={transaction.id}
-                              className="border-b border-gray-100 transition hover:bg-[#fffaf0]"
-                            >
-
-                              <td className="px-6 py-4 text-sm font-semibold text-gray-800">
-                                {transaction.employee}
+                            {reportType === "branch" && (
+                              <td className="px-6 py-4">
+                                <span
+                                  className={`inline-flex rounded-full px-4 py-1.5 text-xs font-semibold ${getBranchColor(
+                                    transaction.branch
+                                  )}`}
+                                >
+                                  {transaction.branch}
+                                </span>
                               </td>
+                            )}
 
-                              {reportType ===
-                                "branch" && (
+                            <td className="px-6 py-4 text-sm font-medium text-gray-800">
+                              {new Date(
+                                `${transaction.date}T00:00:00`
+                              ).toLocaleDateString("en-IN")}
+                            </td>
 
-                                <td className="px-6 py-4">
-
-                                  <span
-                                    className={`inline-flex rounded-full px-4 py-1.5 text-xs font-semibold ${getBranchColor(
-                                      transaction.branch
-                                    )}`}
-                                  >
-                                    {transaction.branch}
-                                  </span>
-
-                                </td>
-
+                            <td className="bg-blue-200 px-6 py-4 text-right text-sm text-blue-900">
+                              ₹
+                              {transaction.cash.toLocaleString(
+                                "en-IN"
                               )}
+                            </td>
 
-                              <td className="px-6 py-4 text-sm font-medium text-gray-800">
-                                {new Date(
-                                  `${transaction.date}T00:00:00`
-                                ).toLocaleDateString(
-                                  "en-IN"
-                                )}
-                              </td>
+                            <td className="bg-red-200 px-6 py-4 text-right text-sm text-red-900">
+                              ₹
+                              {transaction.online.toLocaleString(
+                                "en-IN"
+                              )}
+                            </td>
 
-                              <td className="bg-blue-200 px-6 py-4 text-right text-sm text-blue-900">
-  ₹
-  {transaction.cash.toLocaleString("en-IN")}
-</td>
+                            <td className="bg-gray-200 px-6 py-4 text-right text-sm text-gray-900">
+                              ₹
+                              {transaction.other.toLocaleString(
+                                "en-IN"
+                              )}
+                            </td>
 
-                              <td className="bg-red-200 px-6 py-4 text-right text-sm text-red-900">
-  ₹
-  {transaction.online.toLocaleString("en-IN")}
-</td>
+                            <td className="px-6 py-4 text-right text-sm font-bold text-gray-900">
+                              ₹
+                              {total.toLocaleString(
+                                "en-IN"
+                              )}
+                            </td>
 
-                             <td className="bg-gray-200 px-6 py-4 text-right text-sm text-gray-900">
-  ₹
-  {transaction.other.toLocaleString("en-IN")}
-</td>
+                            <td className="px-6 py-4 text-center">
+                              <EditButton
+                                href={`/transaction/edit/${transaction.id}`}
+                              />
+                            </td>
 
-                              <td className="px-6 py-4 text-right text-sm font-bold text-gray-900">
-                                ₹
-                                {total.toLocaleString(
-                                  "en-IN"
-                                )}
-                              </td>
-
-                              {/* EDIT BUTTON */}
-
-                              <td className="px-6 py-4 text-center">
-
-                                <EditButton
-  href={`/transaction/edit/${transaction.id}`}
-/>
-
-                              </td>
-
-                            </tr>
-
-                          );
-                        }
-                      )
-
+                          </tr>
+                        );
+                      })
                     ) : (
-
                       <tr>
-
                         <td
                           colSpan={
-                            reportType ===
-                            "branch"
+                            reportType === "branch"
                               ? 8
                               : 7
                           }
@@ -1084,46 +970,34 @@ return (
                           </p>
 
                         </td>
-
                       </tr>
-
                     )}
-
                   </tbody>
 
                 </table>
-
               </div>
 
             </div>
 
             {/* TOTAL CALCULATION */}
-
             <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
 
               <div className="border-b border-gray-200 bg-[#17191d] px-6 py-5">
 
                 <h2 className="text-lg font-bold text-white">
-
-                  {reportType ===
-                    "employee" &&
+                  {reportType === "employee" &&
                   selectedEmployeeData
                     ? `${selectedEmployeeData.name} - Total Transaction Payment Calculation`
-                    : reportType ===
-                        "branch" &&
+                    : reportType === "branch" &&
                       selectedBranchData
                     ? `${selectedBranchData.name} - Total Transaction Payment Calculation`
                     : "Total Transaction Payment Calculation"}
-
                 </h2>
 
                 <p className="mt-1 text-sm text-gray-400">
-
-                  {reportType ===
-                  "employee"
+                  {reportType === "employee"
                     ? "Employee wise payment summary"
                     : "Branch wise payment summary"}
-
                 </p>
 
               </div>
@@ -1131,9 +1005,7 @@ return (
               <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2 xl:grid-cols-4">
 
                 {/* CASH */}
-
                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
-
                   <p className="text-sm font-medium text-gray-500">
                     Cash Payment
                   </p>
@@ -1144,13 +1016,10 @@ return (
                       "en-IN"
                     )}
                   </p>
-
                 </div>
 
                 {/* ONLINE */}
-
                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
-
                   <p className="text-sm font-medium text-gray-500">
                     Online Payment
                   </p>
@@ -1161,13 +1030,10 @@ return (
                       "en-IN"
                     )}
                   </p>
-
                 </div>
 
                 {/* OTHER */}
-
                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
-
                   <p className="text-sm font-medium text-gray-500">
                     Other Payment
                   </p>
@@ -1178,13 +1044,10 @@ return (
                       "en-IN"
                     )}
                   </p>
-
                 </div>
 
                 {/* TOTAL */}
-
                 <div className="rounded-xl border border-[#f5b942] bg-[#fff9eb] p-5">
-
                   <p className="text-sm font-medium text-gray-600">
                     Total Payment
                   </p>
@@ -1199,17 +1062,13 @@ return (
                   <p className="mt-1 text-xs text-gray-500">
                     Cash + Online + Other
                   </p>
-
                 </div>
 
               </div>
-
             </div>
 
           </div>
-
         </section>
-
       )}
 
     </main>

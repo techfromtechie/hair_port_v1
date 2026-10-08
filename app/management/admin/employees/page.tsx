@@ -268,6 +268,13 @@ export default function EmployeesPage() {
           PAGE CONTENT
       ===================================================== */}
 
+      {loading ? (
+  <Loader
+    text="Loading employees..."
+    fullScreen
+  />
+) : (
+
    <section className="px-5 py-10 md:px-8">
         <div className="mx-auto max-w-7xl">
 
@@ -503,24 +510,9 @@ export default function EmployeesPage() {
 
             {/* LOADING */}
 
-            {loading ? (
-              <div className="flex min-h-[300px] items-center justify-center">
+        
 
-                <div className="flex flex-col items-center">
-
-                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-[#d59618]" />
-
-                  <p className="mt-4 text-sm text-gray-500">
-                    Loading employees...
-                  </p>
-
-                </div>
-
-              </div>
-            ) : (
-
-              /* TABLE */
-
+             
               <div className="overflow-x-auto">
 
                 <table className="w-full min-w-[1500px]">
@@ -763,12 +755,13 @@ export default function EmployeesPage() {
 
               </div>
 
-            )}
+          
 
           </div>
 
         </div>
       </section>
+      )}
       
 
     </main>

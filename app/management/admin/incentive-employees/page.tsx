@@ -634,18 +634,7 @@ export default function IncentiveEmployeesPage() {
 
             </div>
 
-            <button
-              type="button"
-              onClick={fetchData}
-              disabled={loading}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#17191d] px-5 text-sm font-semibold text-white transition hover:bg-black disabled:opacity-50"
-            >
-
-              <RotateCcw className="h-4 w-4" />
-
-              Refresh
-
-            </button>
+           
 
           </div>
 

@@ -10,6 +10,7 @@ import { supabase } from "@/app/lib/supabase";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import Loader from "@/app/components/Loader";
 
 type Employee = {
   id: string;
@@ -57,6 +58,10 @@ const paymentModes = [
     label: "Online",
     value: "Online",
   },
+  {
+    label: "Other",
+    value: "Other",
+  }
 ];
 
 export default function AddTransactionPage() {
@@ -292,23 +297,30 @@ export default function AddTransactionPage() {
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 
                 {/* Employee Name */}
-                <FormSelect
-                  label="Employee Name"
-                  placeholder={
-                    loadingEmployees
-                      ? "Loading employees..."
-                      : "Select Employee"
-                  }
-                  options={employees.map((item) => ({
-                    label: item.name,
-                    value: item.id,
-                  }))}
-                  value={employee}
-                  onChange={(e) =>
-                    setEmployee(e.target.value)
-                  }
-                  required
-                />
+   {/* Employee Name */}
+<div className="relative">
+  <FormSelect
+    label="Employee Name"
+    placeholder={
+      loadingEmployees
+        ? "Loading employees..."
+        : "Select Employee"
+    }
+    options={employees.map((item) => ({
+      label: item.name,
+      value: item.id,
+    }))}
+    value={employee}
+    onChange={(e) => setEmployee(e.target.value)}
+    required
+  />
+
+  {loadingEmployees && (
+    <div className="absolute right-3 top-9">
+      <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-[#f5b942]" />
+    </div>
+  )}
+</div>
 
                 {/* Service */}
                 <FormSelect

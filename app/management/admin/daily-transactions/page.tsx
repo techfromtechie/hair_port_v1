@@ -6,6 +6,7 @@ import Link from "next/link";
 import Navbar from "@/app/components/Navbar";
 import ExportTable from "@/app/components/ExportTable";
 import FormSelect from "@/app/components/forms/FormSelect";
+import Loader from "@/app/components/Loader";
 
 import { supabase } from "@/app/lib/supabase";
 import { toast } from "react-toastify";
@@ -13,7 +14,6 @@ import { toast } from "react-toastify";
 import {
   Plus,
   Search,
-  SlidersHorizontal,
   Wallet,
   Building2,
   UserRound,
@@ -63,16 +63,11 @@ export default function DailyTransactionsPage() {
   // FILTER STATES
   // =======================================================
 
-  const [search, setSearch] = useState("");
-
   const [period, setPeriod] =
     useState<PeriodFilter>("all");
 
   const [selectedBranch, setSelectedBranch] =
     useState("");
-
-  const [showFilters, setShowFilters] =
-    useState(false);
 
   // =======================================================
   // SUPABASE DATA
@@ -315,6 +310,7 @@ export default function DailyTransactionsPage() {
 
               // Only use amount when cash/online
               // fields don't contain a value.
+
               if (
                 cash === 0 &&
                 online === 0 &&
@@ -489,33 +485,8 @@ export default function DailyTransactionsPage() {
       const startDate =
         getStartDate(period);
 
-      const searchValue =
-        search
-          .trim()
-          .toLowerCase();
-
       return transactions
         .filter((transaction) => {
-          // ===============================================
-          // TOTAL
-          // ===============================================
-
-          const totalAmount =
-            transaction.cash +
-            transaction.online;
-
-          // ===============================================
-          // SEARCH
-          // ===============================================
-
-          const matchesSearch =
-            !searchValue ||
-            transaction.employee
-              .toLowerCase()
-              .includes(searchValue) ||
-            String(
-              totalAmount
-            ).includes(searchValue);
 
           // ===============================================
           // BRANCH
@@ -550,7 +521,6 @@ export default function DailyTransactionsPage() {
             );
 
           return (
-            matchesSearch &&
             matchesBranch &&
             matchesPeriod
           );
@@ -562,7 +532,6 @@ export default function DailyTransactionsPage() {
         );
     }, [
       transactions,
-      search,
       period,
       selectedBranch,
       todayString,
@@ -633,7 +602,6 @@ export default function DailyTransactionsPage() {
   // =======================================================
 
   const resetFilters = () => {
-    setSearch("");
     setPeriod("all");
     setSelectedBranch("");
   };
@@ -650,123 +618,73 @@ export default function DailyTransactionsPage() {
       =================================================== */}
 
       <div className="relative bg-[#17191d]">
+
         <Navbar />
 
         <div className="h-24" />
+
       </div>
 
       {/* ===================================================
-          PAGE CONTENT
+          LOADER / PAGE CONTENT
       =================================================== */}
 
-      <section className="px-5 py-10 md:px-8">
+      {loading ? (
 
-        <div className="mx-auto max-w-7xl">
+        <Loader
+          text="Loading transactions..."
+          fullScreen
+        />
 
-          {/* =================================================
-              HEADER
-          ================================================= */}
+      ) : (
 
-          <div className="mb-8">
+        <section className="px-5 py-10 md:px-8">
 
-            <div className="flex items-center gap-3">
+          <div className="mx-auto max-w-7xl">
 
-              {/* BACK BUTTON */}
+            {/* =================================================
+                HEADER
+            ================================================= */}
 
-              <Link
-                href="/management/admin"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-[#f5b942] hover:bg-[#fff9eb] hover:text-[#a86f00]"
-                title="Back to Admin Dashboard"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
+            <div className="mb-8">
 
-              {/* GOLD LINE */}
+              <div className="flex items-center gap-3">
 
-              <div className="h-8 w-1 rounded-full bg-[#f5b942]" />
+                {/* BACK BUTTON */}
 
-              {/* TITLE */}
+                <Link
+                  href="/management/admin"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-[#f5b942] hover:bg-[#fff9eb] hover:text-[#a86f00]"
+                  title="Back to Admin Dashboard"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
 
-              <h1 className="text-3xl font-bold tracking-tight text-[#17191d] md:text-4xl">
-                Daily Transactions
-              </h1>
+                {/* GOLD LINE */}
 
-            </div>
+                <div className="h-8 w-1 rounded-full bg-[#f5b942]" />
 
-            <p className="ml-4 mt-3 text-base text-gray-500">
-              View and manage employee transaction payments.
-            </p>
+                {/* TITLE */}
 
-          </div>
-
-          {/* =================================================
-              FILTER SECTION
-          ================================================= */}
-
-          <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-
-            {/* TOP ROW */}
-
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-
-              {/* SEARCH */}
-
-              <div className="relative flex-1">
-
-                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) =>
-                    setSearch(
-                      e.target.value
-                    )
-                  }
-                  placeholder="Search employee name or amount..."
-                  className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 pl-11 pr-4 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-[#d59618] focus:bg-white focus:ring-2 focus:ring-[#f5b942]/20"
-                />
+                <h1 className="text-3xl font-bold tracking-tight text-[#17191d] md:text-4xl">
+                  Daily Transactions
+                </h1>
 
               </div>
 
-              {/* FILTER BUTTON */}
-
-              <button
-                type="button"
-                onClick={() =>
-                  setShowFilters(
-                    !showFilters
-                  )
-                }
-                className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg border px-5 text-sm font-semibold transition ${
-                  showFilters
-                    ? "border-[#d59618] bg-[#fff9eb] text-[#a86f00]"
-                    : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                Filters
-              </button>
-
-              {/* RESET BUTTON */}
-
-              <button
-                type="button"
-                onClick={
-                  resetFilters
-                }
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Reset
-              </button>
+              <p className="ml-4 mt-3 text-base text-gray-500">
+                View and manage employee transaction payments.
+              </p>
 
             </div>
 
-            {/* FILTER OPTIONS */}
+            {/* =================================================
+                FILTER SECTION
+            ================================================= */}
 
-            {showFilters && (
-              <div className="mt-5 grid grid-cols-1 gap-4 border-t border-gray-100 pt-5 md:grid-cols-2">
+            <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
 
                 {/* PERIOD */}
 
@@ -783,8 +701,9 @@ export default function DailyTransactionsPage() {
                         e.target.value as PeriodFilter
                       )
                     }
-                    className="h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#d59618] focus:ring-2 focus:ring-[#f5b942]/20"
+                    className="h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-[#d59618] focus:ring-2 focus:ring-[#f5b942]/20"
                   >
+
                     <option value="all">
                       All Time
                     </option>
@@ -804,6 +723,7 @@ export default function DailyTransactionsPage() {
                     <option value="year">
                       Last 1 Year
                     </option>
+
                   </select>
 
                 </div>
@@ -843,392 +763,387 @@ export default function DailyTransactionsPage() {
                 </div>
 
               </div>
-            )}
 
-          </div>
+            </div>
 
-          {/* =================================================
-              SUMMARY CARDS
-          ================================================= */}
+            {/* =================================================
+                SUMMARY CARDS
+            ================================================= */}
 
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-            {/* RECENT TRANSACTIONS */}
+              {/* RECENT TRANSACTIONS */}
 
-            <SummaryCard
-              title="Recent Transactions"
-              value={filteredTransactions.length.toString()}
-              subtitle="Filtered records"
-              icon={
-                <UserRound className="h-5 w-5" />
-              }
-              iconClass="bg-blue-50 text-blue-600"
-            />
+              <SummaryCard
+                title="Recent Transactions"
+                value={filteredTransactions.length.toString()}
+                subtitle="Filtered records"
+                icon={
+                  <UserRound className="h-5 w-5" />
+                }
+                iconClass="bg-blue-50 text-blue-600"
+              />
 
-            {/* TOTAL AMOUNT */}
+              {/* TOTAL AMOUNT */}
 
-            <SummaryCard
-              title="Total Amount"
-              value={`₹${totalAmount.toLocaleString(
-                "en-IN"
-              )}`}
-              subtitle="Cash + Online"
-              icon={
-                <Wallet className="h-5 w-5" />
-              }
-              iconClass="bg-amber-50 text-[#d59618]"
-            />
+              <SummaryCard
+                title="Total Amount"
+                value={`₹${totalAmount.toLocaleString(
+                  "en-IN"
+                )}`}
+                subtitle="Cash + Online"
+                icon={
+                  <Wallet className="h-5 w-5" />
+                }
+                iconClass="bg-amber-50 text-[#d59618]"
+              />
 
-            {/* CASH */}
+              {/* CASH */}
 
-            <SummaryCard
-              title="Cash"
-              value={`₹${totalCash.toLocaleString(
-                "en-IN"
-              )}`}
-              subtitle="Cash payments"
-              icon={
-                <IndianRupee className="h-5 w-5" />
-              }
-              iconClass="bg-green-50 text-green-600"
-            />
+              <SummaryCard
+                title="Cash"
+                value={`₹${totalCash.toLocaleString(
+                  "en-IN"
+                )}`}
+                subtitle="Cash payments"
+                icon={
+                  <IndianRupee className="h-5 w-5" />
+                }
+                iconClass="bg-green-50 text-green-600"
+              />
 
-            {/* ONLINE */}
+              {/* ONLINE */}
 
-            <SummaryCard
-              title="Online"
-              value={`₹${totalOnline.toLocaleString(
-                "en-IN"
-              )}`}
-              subtitle="Online payments"
-              icon={
-                <Wallet className="h-5 w-5" />
-              }
-              iconClass="bg-violet-50 text-violet-600"
-            />
+              <SummaryCard
+                title="Online"
+                value={`₹${totalOnline.toLocaleString(
+                  "en-IN"
+                )}`}
+                subtitle="Online payments"
+                icon={
+                  <Wallet className="h-5 w-5" />
+                }
+                iconClass="bg-violet-50 text-violet-600"
+              />
 
-          </div>
+            </div>
 
-          {/* =================================================
-              TRANSACTION TABLE
-          ================================================= */}
+            {/* =================================================
+                TRANSACTION TABLE
+            ================================================= */}
 
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
 
-            {/* TABLE HEADER */}
+              {/* TABLE HEADER */}
 
-            <div className="flex flex-col gap-4 border-b border-gray-200 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-col gap-4 border-b border-gray-200 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
 
-              <div>
+                <div>
 
-                <h2 className="text-lg font-bold text-[#17191d]">
-                  Recent Daily Transactions
-                </h2>
+                  <h2 className="text-lg font-bold text-[#17191d]">
+                    Recent Daily Transactions
+                  </h2>
 
-                <p className="mt-1 text-sm text-gray-500">
-                  Transaction payment history based on the selected filters.
+                  <p className="mt-1 text-sm text-gray-500">
+                    Transaction payment history based on the selected filters.
+                  </p>
+
+                </div>
+
+               {/* ACTIONS */}
+
+<div className="flex flex-wrap gap-3">
+
+  {/* RESET */}
+
+  <button
+    type="button"
+    onClick={resetFilters}
+    className="inline-flex h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:border-[#f5b942] hover:bg-[#fff9eb] hover:text-gray-900"
+  >
+    <RotateCcw className="h-4 w-4" />
+    Reset
+  </button>
+
+  {/* EXPORT */}
+
+  <ExportTable
+    data={transactionExportData}
+    columns={[
+      {
+        header: "Employee",
+        key: "employee",
+      },
+      {
+        header: "Branch",
+        key: "branch",
+      },
+      {
+        header: "Date",
+        key: "date",
+      },
+      {
+        header: "Cash",
+        key: "cash",
+      },
+      {
+        header: "Online",
+        key: "online",
+      },
+      {
+        header: "Total",
+        key: "total",
+      },
+    ]}
+    fileName="Daily-Transactions"
+    disabled={!filteredTransactions.length}
+  />
+
+  {/* ADD TRANSACTION */}
+
+  <Link
+    href="/transaction/add"
+    className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#17191d] px-5 text-sm font-semibold text-white transition hover:bg-black"
+  >
+    <Plus className="h-4 w-4" />
+    Add Transaction
+  </Link>
+
+</div>
+              </div>
+
+              {/* =================================================
+                  TABLE
+              ================================================= */}
+
+              <div className="overflow-x-auto">
+
+                <table className="w-full min-w-[850px]">
+
+                  {/* TABLE HEAD */}
+
+                  <thead>
+
+                    <tr className="bg-[#17191d] text-left text-sm text-white">
+
+                      <th className="px-6 py-4 font-semibold">
+                        Employee
+                      </th>
+
+                      <th className="px-6 py-4 font-semibold">
+                        Branch
+                      </th>
+
+                      <th className="px-6 py-4 font-semibold">
+                        Date
+                      </th>
+
+                      <th className="px-6 py-4 text-right font-semibold">
+                        Cash
+                      </th>
+
+                      <th className="px-6 py-4 text-right font-semibold">
+                        Online
+                      </th>
+
+                      <th className="px-6 py-4 text-right font-semibold">
+                        Total
+                      </th>
+
+                    </tr>
+
+                  </thead>
+
+                  {/* TABLE BODY */}
+
+                  <tbody>
+
+                    {filteredTransactions.length > 0 ? (
+
+                      filteredTransactions.map(
+                        (transaction) => {
+
+                          const total =
+                            transaction.cash +
+                            transaction.online;
+
+                          return (
+
+                            <tr
+                              key={
+                                transaction.id
+                              }
+                              className="border-b border-gray-100 transition last:border-b-0 hover:bg-[#fffaf0]"
+                            >
+
+                              {/* EMPLOYEE */}
+
+                              <td className="px-6 py-4">
+
+                                <div className="flex items-center gap-3">
+
+                                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
+
+                                    <UserRound className="h-4 w-4" />
+
+                                  </div>
+
+                                  <div className="font-semibold text-gray-800">
+
+                                    {
+                                      transaction.employee
+                                    }
+
+                                  </div>
+
+                                </div>
+
+                              </td>
+
+                              {/* BRANCH */}
+
+                              <td className="px-6 py-4">
+
+                                <span
+                                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${getBranchColor(
+                                    transaction.branchId
+                                  )}`}
+                                >
+
+                                  <Building2 className="h-3.5 w-3.5" />
+
+                                  {
+                                    transaction.branch
+                                  }
+
+                                </span>
+
+                              </td>
+
+                              {/* DATE */}
+
+                              <td className="px-6 py-4 text-sm font-medium text-gray-700">
+
+                                {transaction.date
+                                  ? new Date(
+                                      `${transaction.date}T00:00:00`
+                                    ).toLocaleDateString(
+                                      "en-IN"
+                                    )
+                                  : "-"}
+
+                              </td>
+
+                              {/* CASH */}
+
+                              <td className="px-6 py-4 text-right text-sm font-medium text-gray-700">
+
+                                ₹
+                                {transaction.cash.toLocaleString(
+                                  "en-IN"
+                                )}
+
+                              </td>
+
+                              {/* ONLINE */}
+
+                              <td className="px-6 py-4 text-right text-sm font-medium text-gray-700">
+
+                                ₹
+                                {transaction.online.toLocaleString(
+                                  "en-IN"
+                                )}
+
+                              </td>
+
+                              {/* TOTAL */}
+
+                              <td className="px-6 py-4 text-right text-sm font-bold text-[#17191d]">
+
+                                ₹
+                                {total.toLocaleString(
+                                  "en-IN"
+                                )}
+
+                              </td>
+
+                            </tr>
+
+                          );
+                        }
+                      )
+
+                    ) : (
+
+                      /* NO DATA */
+
+                      <tr>
+
+                        <td
+                          colSpan={6}
+                          className="px-6 py-16 text-center"
+                        >
+
+                          <div className="flex flex-col items-center">
+
+                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+
+                              <Search className="h-6 w-6 text-gray-400" />
+
+                            </div>
+
+                            <h3 className="mt-4 text-base font-semibold text-gray-900">
+                              No transactions found
+                            </h3>
+
+                            <p className="mt-1 text-sm text-gray-500">
+                              Try changing your filter.
+                            </p>
+
+                          </div>
+
+                        </td>
+
+                      </tr>
+
+                    )}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+              {/* =================================================
+                  TABLE FOOTER
+              ================================================= */}
+
+              <div className="border-t border-gray-200 bg-[#fafafa] px-6 py-4">
+
+                <p className="text-sm text-gray-500">
+
+                  Total transaction amount:{" "}
+
+                  <span className="font-bold text-gray-800">
+
+                    ₹
+                    {totalAmount.toLocaleString(
+                      "en-IN"
+                    )}
+
+                  </span>
+
                 </p>
 
               </div>
 
-              {/* ACTIONS */}
-
-              <div className="flex flex-wrap gap-3">
-
-                {/* EXPORT */}
-
-                <ExportTable
-                  data={
-                    transactionExportData
-                  }
-                  columns={[
-                    {
-                      header:
-                        "Employee",
-                      key:
-                        "employee",
-                    },
-                    {
-                      header:
-                        "Branch",
-                      key:
-                        "branch",
-                    },
-                    {
-                      header:
-                        "Date",
-                      key:
-                        "date",
-                    },
-                    {
-                      header:
-                        "Cash",
-                      key:
-                        "cash",
-                    },
-                    {
-                      header:
-                        "Online",
-                      key:
-                        "online",
-                    },
-                    {
-                      header:
-                        "Total",
-                      key:
-                        "total",
-                    },
-                  ]}
-                  fileName="Daily-Transactions"
-                  disabled={
-                    !filteredTransactions.length
-                  }
-                />
-
-                {/* ADD TRANSACTION */}
-
-                <Link
-                  href="/transaction/add"
-                  className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#17191d] px-5 text-sm font-semibold text-white transition hover:bg-black"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Transaction
-                </Link>
-
-              </div>
-
-            </div>
-
-            {/* TABLE */}
-
-            <div className="overflow-x-auto">
-
-              <table className="w-full min-w-[850px]">
-
-                {/* TABLE HEAD */}
-
-                <thead>
-
-                  <tr className="bg-[#17191d] text-left text-sm text-white">
-
-                    <th className="px-6 py-4 font-semibold">
-                      Employee
-                    </th>
-
-                    <th className="px-6 py-4 font-semibold">
-                      Branch
-                    </th>
-
-                    <th className="px-6 py-4 font-semibold">
-                      Date
-                    </th>
-
-                    <th className="px-6 py-4 text-right font-semibold">
-                      Cash
-                    </th>
-
-                    <th className="px-6 py-4 text-right font-semibold">
-                      Online
-                    </th>
-
-                    <th className="px-6 py-4 text-right font-semibold">
-                      Total
-                    </th>
-
-                  </tr>
-
-                </thead>
-
-                {/* TABLE BODY */}
-
-                <tbody>
-
-                  {/* LOADING */}
-
-                  {loading ? (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-6 py-16 text-center"
-                      >
-                        <div className="flex flex-col items-center">
-
-                          <div className="h-9 w-9 animate-spin rounded-full border-4 border-gray-200 border-t-[#f5b942]" />
-
-                          <p className="mt-4 text-sm font-medium text-gray-500">
-                            Loading transactions...
-                          </p>
-
-                        </div>
-                      </td>
-                    </tr>
-                  ) : filteredTransactions.length > 0 ? (
-
-                    /* TRANSACTIONS */
-
-                    filteredTransactions.map(
-                      (transaction) => {
-
-                        const total =
-                          transaction.cash +
-                          transaction.online;
-
-                        return (
-                          <tr
-                            key={
-                              transaction.id
-                            }
-                            className="border-b border-gray-100 transition last:border-b-0 hover:bg-[#fffaf0]"
-                          >
-
-                            {/* EMPLOYEE */}
-
-                            <td className="px-6 py-4">
-
-                              <div className="flex items-center gap-3">
-
-                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
-                                  <UserRound className="h-4 w-4" />
-                                </div>
-
-                                <div className="font-semibold text-gray-800">
-                                  {
-                                    transaction.employee
-                                  }
-                                </div>
-
-                              </div>
-
-                            </td>
-
-                            {/* BRANCH */}
-
-                            <td className="px-6 py-4">
-
-                              <span
-                                className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${getBranchColor(
-                                  transaction.branchId
-                                )}`}
-                              >
-
-                                <Building2 className="h-3.5 w-3.5" />
-
-                                {
-                                  transaction.branch
-                                }
-
-                              </span>
-
-                            </td>
-
-                            {/* DATE */}
-
-                            <td className="px-6 py-4 text-sm font-medium text-gray-700">
-
-                              {transaction.date
-                                ? new Date(
-                                    `${transaction.date}T00:00:00`
-                                  ).toLocaleDateString(
-                                    "en-IN"
-                                  )
-                                : "-"}
-
-                            </td>
-
-                            {/* CASH */}
-
-                            <td className="px-6 py-4 text-right text-sm font-medium text-gray-700">
-                              ₹
-                              {transaction.cash.toLocaleString(
-                                "en-IN"
-                              )}
-                            </td>
-
-                            {/* ONLINE */}
-
-                            <td className="px-6 py-4 text-right text-sm font-medium text-gray-700">
-                              ₹
-                              {transaction.online.toLocaleString(
-                                "en-IN"
-                              )}
-                            </td>
-
-                            {/* TOTAL */}
-
-                            <td className="px-6 py-4 text-right text-sm font-bold text-[#17191d]">
-                              ₹
-                              {total.toLocaleString(
-                                "en-IN"
-                              )}
-                            </td>
-
-                          </tr>
-                        );
-                      }
-                    )
-
-                  ) : (
-
-                    /* NO DATA */
-
-                    <tr>
-
-                      <td
-                        colSpan={6}
-                        className="px-6 py-16 text-center"
-                      >
-
-                        <div className="flex flex-col items-center">
-
-                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
-                            <Search className="h-6 w-6 text-gray-400" />
-                          </div>
-
-                          <h3 className="mt-4 text-base font-semibold text-gray-900">
-                            No transactions found
-                          </h3>
-
-                          <p className="mt-1 text-sm text-gray-500">
-                            Try changing your search or filter.
-                          </p>
-
-                        </div>
-
-                      </td>
-
-                    </tr>
-                  )}
-
-                </tbody>
-
-              </table>
-
-            </div>
-
-            {/* TABLE FOOTER */}
-
-            <div className="border-t border-gray-200 bg-[#fafafa] px-6 py-4">
-
-              <p className="text-sm text-gray-500">
-
-                Total transaction amount:{" "}
-
-                <span className="font-bold text-gray-800">
-                  ₹
-                  {totalAmount.toLocaleString(
-                    "en-IN"
-                  )}
-                </span>
-
-              </p>
-
             </div>
 
           </div>
 
-        </div>
+        </section>
 
-      </section>
+      )}
 
     </main>
   );
@@ -1251,7 +1166,9 @@ function SummaryCard({
   icon: React.ReactNode;
   iconClass: string;
 }) {
+
   return (
+
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
 
       <div className="flex items-start justify-between gap-4">
@@ -1281,5 +1198,6 @@ function SummaryCard({
       </div>
 
     </div>
+
   );
 }

@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   Plus,
   Search,
-  SlidersHorizontal,
   RotateCcw,
   Building2,
   UserRound,
@@ -19,7 +18,9 @@ import {
 } from "lucide-react";
 
 import Navbar from "@/app/components/Navbar";
+import Loader from "@/app/components/Loader";
 import FormSelect from "@/app/components/forms/FormSelect";
+import ExportTable from "@/app/components/ExportTable";
 import { supabase } from "@/app/lib/supabase";
 
 // ============================================================
@@ -61,9 +62,7 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [search, setSearch] = useState("");
   const [selectedBranch, setSelectedBranch] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
 
   // ==========================================================
   // FETCH DATA
@@ -170,35 +169,23 @@ export default function EmployeesPage() {
   // FILTER EMPLOYEES
   // ==========================================================
 
-  const filteredEmployees = useMemo(() => {
-    const searchValue = search.trim().toLowerCase();
+ const filteredEmployees = useMemo(() => {
+  return employees.filter((employee) => {
+    const matchesBranch =
+      !selectedBranch ||
+      employee.branchId === selectedBranch;
 
-    return employees.filter((employee) => {
-      const matchesSearch =
-        !searchValue ||
-        employee.name.toLowerCase().includes(searchValue) ||
-        employee.contactNumber
-          .toLowerCase()
-          .includes(searchValue) ||
-        employee.branch.toLowerCase().includes(searchValue);
-
-      const matchesBranch =
-        !selectedBranch ||
-        employee.branchId === selectedBranch;
-
-      return matchesSearch && matchesBranch;
-    });
-  }, [employees, search, selectedBranch]);
+    return matchesBranch;
+  });
+}, [employees, selectedBranch]);
 
   // ==========================================================
   // RESET
   // ==========================================================
 
-  const resetFilters = () => {
-    setSearch("");
-    setSelectedBranch("");
-  };
-
+ const resetFilters = () => {
+  setSelectedBranch("");
+};
   // ==========================================================
   // DELETE EMPLOYEE
   // ==========================================================
@@ -281,7 +268,7 @@ export default function EmployeesPage() {
           PAGE CONTENT
       ===================================================== */}
 
-      <section className="px-5 py-10 md:px-8">
+   <section className="px-5 py-10 md:px-8">
         <div className="mx-auto max-w-7xl">
 
           {/* =================================================
@@ -340,86 +327,37 @@ export default function EmployeesPage() {
             </div>
           )}
 
-          {/* =================================================
-              FILTER SECTION
-          ================================================= */}
+         {/* =================================================
+    FILTERS
+================================================= */}
 
-          <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+<div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
 
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 
-              {/* SEARCH */}
+    {/* BRANCH */}
 
-              <div className="relative flex-1">
+    <FormSelect
+      label="Branch"
+      value={selectedBranch}
+      onChange={(e) =>
+        setSelectedBranch(e.target.value)
+      }
+      options={[
+        {
+          label: "All Branches",
+          value: "",
+        },
+        ...branches.map((branch) => ({
+          label: branch.name,
+          value: branch.id,
+        })),
+      ]}
+    />
 
-                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+  </div>
 
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search employee name, contact or branch..."
-                  className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 pl-11 pr-4 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-[#d59618] focus:bg-white focus:ring-2 focus:ring-[#f5b942]/20"
-                />
-
-              </div>
-
-              {/* FILTER */}
-
-              <button
-                type="button"
-                onClick={() => setShowFilters(!showFilters)}
-                className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg border px-5 text-sm font-semibold transition ${
-                  showFilters
-                    ? "border-[#d59618] bg-[#fff9eb] text-[#a86f00]"
-                    : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                Filters
-              </button>
-
-              {/* RESET */}
-
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Reset
-              </button>
-
-            </div>
-
-            {/* FILTER OPTIONS */}
-
-            {showFilters && (
-              <div className="mt-5 grid grid-cols-1 gap-4 border-t border-gray-100 pt-5 md:grid-cols-2">
-
-                <FormSelect
-                  label="Branch"
-                  value={selectedBranch}
-                  onChange={(e) =>
-                    setSelectedBranch(e.target.value)
-                  }
-                  options={[
-                    {
-                      label: "All Branches",
-                      value: "",
-                    },
-                    ...branches.map((branch) => ({
-                      label: branch.name,
-                      value: branch.id,
-                    })),
-                  ]}
-                />
-
-              </div>
-            )}
-
-          </div>
-
+</div>
           {/* =================================================
               SUMMARY
           ================================================= */}
@@ -480,13 +418,86 @@ export default function EmployeesPage() {
 
               </div>
 
-              <p className="text-sm text-gray-500">
-                Showing{" "}
-                <span className="font-semibold text-gray-800">
-                  {filteredEmployees.length}
-                </span>{" "}
-                employees
-              </p>
+              <div className="flex flex-wrap items-center gap-3">
+
+  {/* SHOWING */}
+
+  <p className="text-sm text-gray-500">
+    Showing{" "}
+    <span className="font-semibold text-gray-800">
+      {filteredEmployees.length}
+    </span>{" "}
+    employees
+  </p>
+
+  {/* RESET */}
+
+  <button
+    type="button"
+    onClick={resetFilters}
+    className="inline-flex h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:border-[#f5b942] hover:bg-[#fff9eb] hover:text-gray-900"
+  >
+    <RotateCcw className="h-4 w-4" />
+    Reset
+  </button>
+
+  {/* EXPORT */}
+
+  <ExportTable
+    data={filteredEmployees.map((employee) => ({
+      name: employee.name,
+      contactNumber: employee.contactNumber,
+      branch: employee.branch,
+      dateOfBirth: employee.dateOfBirth,
+      joiningDate: employee.joiningDate,
+      aadharCard: employee.aadharCard,
+      gender: employee.gender,
+      salary: employee.salary,
+      address: employee.address,
+    }))}
+    columns={[
+      {
+        header: "Name",
+        key: "name",
+      },
+      {
+        header: "Contact Number",
+        key: "contactNumber",
+      },
+      {
+        header: "Branch",
+        key: "branch",
+      },
+      {
+        header: "Date of Birth",
+        key: "dateOfBirth",
+      },
+      {
+        header: "Joining Date",
+        key: "joiningDate",
+      },
+      {
+        header: "Aadhar Card",
+        key: "aadharCard",
+      },
+      {
+        header: "Gender",
+        key: "gender",
+      },
+      {
+        header: "Salary",
+        key: "salary",
+      },
+      {
+        header: "Address",
+        key: "address",
+      },
+    ]}
+    fileName="Employees-Report"
+    disabled={!filteredEmployees.length}
+  />
+
+</div>
 
             </div>
 
@@ -736,9 +747,8 @@ export default function EmployeesPage() {
                             </h3>
 
                             <p className="mt-1 text-sm text-gray-500">
-                              Try changing your search or branch filter.
-                            </p>
-
+  Try changing the branch filter.
+</p>
                           </div>
 
                         </td>
@@ -759,6 +769,7 @@ export default function EmployeesPage() {
 
         </div>
       </section>
+      
 
     </main>
   );

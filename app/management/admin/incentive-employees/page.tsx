@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Loader from "@/app/components/Loader";
 
 import Navbar from "@/app/components/Navbar";
 import ExportTable from "@/app/components/ExportTable";
@@ -12,7 +13,6 @@ import { toast } from "react-toastify";
 
 import {
   Search,
-  SlidersHorizontal,
   RotateCcw,
   UserRound,
   Building2,
@@ -78,7 +78,7 @@ export default function IncentiveEmployeesPage() {
 
   const [loading, setLoading] = useState(true);
 
-  const [search, setSearch] = useState("");
+  
 
   const [selectedMonth, setSelectedMonth] =
     useState(
@@ -91,8 +91,7 @@ export default function IncentiveEmployeesPage() {
   const [selectedEmployee, setSelectedEmployee] =
     useState("");
 
-  const [showFilters, setShowFilters] =
-    useState(false);
+  
 
   // =========================================================
   // FETCH SUPABASE DATA
@@ -468,51 +467,23 @@ export default function IncentiveEmployeesPage() {
   // FILTER
   // =========================================================
 
-  const filteredIncentives =
-    useMemo(() => {
-      const searchValue =
-        search
-          .trim()
-          .toLowerCase();
+  const filteredIncentives = useMemo(() => {
+  return incentives.filter((item) => {
+    const matchesBranch =
+      !selectedBranch ||
+      item.branchId === selectedBranch;
 
-      return incentives.filter(
-        (item) => {
-          const matchesSearch =
-            !searchValue ||
-            item.employee
-              .toLowerCase()
-              .includes(
-                searchValue
-              ) ||
-            item.employeeNumber
-              .toLowerCase()
-              .includes(
-                searchValue
-              );
+    const matchesEmployee =
+      !selectedEmployee ||
+      item.employeeId === selectedEmployee;
 
-          const matchesBranch =
-            !selectedBranch ||
-            item.branchId ===
-              selectedBranch;
-
-          const matchesEmployee =
-            !selectedEmployee ||
-            item.employeeId ===
-              selectedEmployee;
-
-          return (
-            matchesSearch &&
-            matchesBranch &&
-            matchesEmployee
-          );
-        }
-      );
-    }, [
-      incentives,
-      search,
-      selectedBranch,
-      selectedEmployee,
-    ]);
+    return matchesBranch && matchesEmployee;
+  });
+}, [
+  incentives,
+  selectedBranch,
+  selectedEmployee,
+]);
 
   // =========================================================
   // SUMMARY
@@ -551,19 +522,15 @@ export default function IncentiveEmployeesPage() {
   // RESET FILTER
   // =========================================================
 
-  const resetFilters = () => {
-    setSearch("");
-
-    setSelectedBranch("");
-
-    setSelectedEmployee("");
-
-    setSelectedMonth(
-      new Date()
-        .toISOString()
-        .slice(0, 7)
-    );
-  };
+ const resetFilters = () => {
+  setSelectedBranch("");
+  setSelectedEmployee("");
+  setSelectedMonth(
+    new Date()
+      .toISOString()
+      .slice(0, 7)
+  );
+};
 
   // =========================================================
   // EXPORT
@@ -624,9 +591,15 @@ export default function IncentiveEmployeesPage() {
           CONTENT
       ===================================================== */}
 
-      <section className="px-5 py-10 md:px-8">
+     {loading ? (
+  <Loader
+    text="Loading incentive data..."
+    fullScreen
+  />
+) : (
+  <section className="px-5 py-10 md:px-8">
 
-        <div className="mx-auto max-w-7xl">
+    <div className="mx-auto max-w-7xl">
 
           {/* =================================================
               HEADER
@@ -676,166 +649,74 @@ export default function IncentiveEmployeesPage() {
 
           </div>
 
-          {/* =================================================
-              SEARCH + FILTER
-          ================================================= */}
+{/* =================================================
+    FILTERS
+================================================= */}
 
-          <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+<div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
 
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
 
-              {/* SEARCH */}
+    {/* MONTH */}
 
-              <div className="relative flex-1">
+    <div>
+      <label className="mb-2 block text-sm font-semibold text-gray-700">
+        Month
+      </label>
 
-                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+      <input
+        type="month"
+        value={selectedMonth}
+        onChange={(e) =>
+          setSelectedMonth(e.target.value)
+        }
+        className="h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-[#d59618] focus:ring-2 focus:ring-[#f5b942]/20"
+      />
+    </div>
 
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) =>
-                    setSearch(
-                      e.target.value
-                    )
-                  }
-                  placeholder="Search employee name or employee number..."
-                  className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 pl-11 pr-4 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-[#d59618] focus:bg-white focus:ring-2 focus:ring-[#f5b942]/20"
-                />
+    {/* BRANCH */}
 
-              </div>
+    <FormSelect
+      label="Branch"
+      value={selectedBranch}
+      onChange={(e) =>
+        setSelectedBranch(e.target.value)
+      }
+      options={[
+        {
+          label: "All Branches",
+          value: "",
+        },
+        ...branches.map((branch) => ({
+          label: branch.name,
+          value: branch.id,
+        })),
+      ]}
+    />
 
-              {/* FILTER BUTTON */}
+    {/* EMPLOYEE */}
 
-              <button
-                type="button"
-                onClick={() =>
-                  setShowFilters(
-                    !showFilters
-                  )
-                }
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-              >
+    <FormSelect
+      label="Employee"
+      value={selectedEmployee}
+      onChange={(e) =>
+        setSelectedEmployee(e.target.value)
+      }
+      options={[
+        {
+          label: "All Employees",
+          value: "",
+        },
+        ...employees.map((employee) => ({
+          label: employee.name,
+          value: employee.id,
+        })),
+      ]}
+    />
 
-                <SlidersHorizontal className="h-4 w-4" />
+  </div>
 
-                Filters
-
-              </button>
-
-              {/* RESET */}
-
-              <button
-                type="button"
-                onClick={
-                  resetFilters
-                }
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
-              >
-
-                <RotateCcw className="h-4 w-4" />
-
-                Reset
-
-              </button>
-
-            </div>
-
-            {/* FILTERS */}
-
-            {showFilters && (
-
-              <div className="mt-5 grid grid-cols-1 gap-4 border-t border-gray-100 pt-5 md:grid-cols-3">
-
-                {/* MONTH */}
-
-                <div>
-
-                  <label className="mb-2 block text-sm font-semibold text-gray-700">
-                    Month
-                  </label>
-
-                  <input
-                    type="month"
-                    value={
-                      selectedMonth
-                    }
-                    onChange={(e) =>
-                      setSelectedMonth(
-                        e.target.value
-                      )
-                    }
-                    className="h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#d59618] focus:ring-2 focus:ring-[#f5b942]/20"
-                  />
-
-                </div>
-
-                {/* BRANCH */}
-
-                <FormSelect
-                  label="Branch"
-                  value={
-                    selectedBranch
-                  }
-                  onChange={(e) =>
-                    setSelectedBranch(
-                      e.target.value
-                    )
-                  }
-                  options={[
-                    {
-                      label:
-                        "All Branches",
-                      value: "",
-                    },
-
-                    ...branches.map(
-                      (branch) => ({
-                        label:
-                          branch.name,
-
-                        value:
-                          branch.id,
-                      })
-                    ),
-                  ]}
-                />
-
-                {/* EMPLOYEE */}
-
-                <FormSelect
-                  label="Employee"
-                  value={
-                    selectedEmployee
-                  }
-                  onChange={(e) =>
-                    setSelectedEmployee(
-                      e.target.value
-                    )
-                  }
-                  options={[
-                    {
-                      label:
-                        "All Employees",
-                      value: "",
-                    },
-
-                    ...employees.map(
-                      (employee) => ({
-                        label:
-                          employee.name,
-
-                        value:
-                          employee.id,
-                      })
-                    ),
-                  ]}
-                />
-
-              </div>
-
-            )}
-
-          </div>
+</div>         
 
           {/* =================================================
               SUMMARY
@@ -904,70 +785,66 @@ export default function IncentiveEmployeesPage() {
 
               </div>
 
-              <ExportTable
-                data={
-                  incentiveExportData
-                }
-                columns={[
-                  {
-                    header:
-                      "Employee",
-                    key: "employee",
-                  },
-                  {
-                    header:
-                      "Employee No",
-                    key:
-                      "employeeNumber",
-                  },
-                  {
-                    header:
-                      "Branch",
-                    key:
-                      "branch",
-                  },
-                  {
-                    header:
-                      "Month",
-                    key:
-                      "month",
-                  },
-                  {
-                    header:
-                      "Business",
-                    key:
-                      "business",
-                  },
-                  {
-                    header:
-                      "Salary",
-                    key:
-                      "salary",
-                  },
-                  {
-                    header:
-                      "Incentive %",
-                    key:
-                      "incentivePercentage",
-                  },
-                  {
-                    header:
-                      "Incentive Amount",
-                    key:
-                      "incentiveAmount",
-                  },
-                  {
-                    header:
-                      "Rule",
-                    key:
-                      "rule",
-                  },
-                ]}
-                fileName="Employee-Incentive-Report"
-                disabled={
-                  !filteredIncentives.length
-                }
-              />
+              <div className="flex flex-wrap gap-3">
+
+  {/* RESET */}
+
+  <button
+    type="button"
+    onClick={resetFilters}
+    className="inline-flex h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:border-[#f5b942] hover:bg-[#fff9eb] hover:text-gray-900"
+  >
+    <RotateCcw className="h-4 w-4" />
+    Reset
+  </button>
+
+  {/* EXPORT */}
+
+  <ExportTable
+    data={incentiveExportData}
+    columns={[
+      {
+        header: "Employee",
+        key: "employee",
+      },
+      {
+        header: "Employee No",
+        key: "employeeNumber",
+      },
+      {
+        header: "Branch",
+        key: "branch",
+      },
+      {
+        header: "Month",
+        key: "month",
+      },
+      {
+        header: "Business",
+        key: "business",
+      },
+      {
+        header: "Salary",
+        key: "salary",
+      },
+      {
+        header: "Incentive %",
+        key: "incentivePercentage",
+      },
+      {
+        header: "Incentive Amount",
+        key: "incentiveAmount",
+      },
+      {
+        header: "Rule",
+        key: "rule",
+      },
+    ]}
+    fileName="Employee-Incentive-Report"
+    disabled={!filteredIncentives.length}
+  />
+
+</div>
 
             </div>
 
@@ -1257,10 +1134,10 @@ export default function IncentiveEmployeesPage() {
 
           </div>
 
-        </div>
+          </div>
 
-      </section>
-
+  </section>
+)}
     </main>
   );
 }

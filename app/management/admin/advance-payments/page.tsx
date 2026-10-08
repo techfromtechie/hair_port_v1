@@ -6,14 +6,13 @@ import Link from "next/link";
 import Navbar from "@/app/components/Navbar";
 import ExportTable from "@/app/components/ExportTable";
 import FormSelect from "@/app/components/forms/FormSelect";
+import Loader from "@/app/components/Loader";
 
 import { supabase } from "@/app/lib/supabase";
 import { toast } from "react-toastify";
 
 import {
   Plus,
-  Search,
-  SlidersHorizontal,
   Wallet,
   Building2,
   UserRound,
@@ -47,14 +46,13 @@ type Advance = {
 };
 
 export default function AdvancePaymentsPage() {
-  const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<PeriodFilter>("all");
   const [selectedBranch, setSelectedBranch] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [advances, setAdvances] = useState<Advance[]>([]);
+
   const [loading, setLoading] = useState(true);
 
   // =========================================================
@@ -199,9 +197,7 @@ export default function AdvancePaymentsPage() {
 
             return {
               id: advance.id,
-
               employeeId: advance.employee_id,
-
               branchId: advance.branch_id,
 
               employee:
@@ -211,7 +207,6 @@ export default function AdvancePaymentsPage() {
                 branch?.name ?? "Unknown Branch",
 
               cash: Number(advance.cash ?? 0),
-
               online: Number(advance.online ?? 0),
 
               description:
@@ -315,29 +310,6 @@ export default function AdvancePaymentsPage() {
     return advances
       .filter((advance) => {
         // ===================================================
-        // SEARCH
-        // Employee Name
-        // Description
-        // Advance Amount
-        // ===================================================
-
-        const searchValue =
-          search.trim().toLowerCase();
-
-        const totalAmount =
-          advance.cash + advance.online;
-
-        const matchesSearch =
-          !searchValue ||
-          advance.employee
-            .toLowerCase()
-            .includes(searchValue) ||
-          advance.description
-            .toLowerCase()
-            .includes(searchValue) ||
-          String(totalAmount).includes(searchValue);
-
-        // ===================================================
         // BRANCH FILTER
         // ===================================================
 
@@ -358,7 +330,6 @@ export default function AdvancePaymentsPage() {
           advanceDate >= startDate;
 
         return (
-          matchesSearch &&
           matchesBranch &&
           matchesPeriod
         );
@@ -368,7 +339,6 @@ export default function AdvancePaymentsPage() {
       );
   }, [
     advances,
-    search,
     period,
     selectedBranch,
   ]);
@@ -430,7 +400,6 @@ export default function AdvancePaymentsPage() {
   // =========================================================
 
   const resetFilters = () => {
-    setSearch("");
     setPeriod("all");
     setSelectedBranch("");
   };
@@ -453,124 +422,76 @@ export default function AdvancePaymentsPage() {
       </div>
 
       {/* =====================================================
-          PAGE
+          LOADER
       ===================================================== */}
 
-      <section className="px-5 py-8 md:px-8">
-        <div className="mx-auto max-w-7xl">
+      {loading ? (
+        <Loader
+          text="Loading advance payments..."
+          fullScreen
+        />
+      ) : (
+        <section className="px-5 py-8 md:px-8">
 
-          {/* =================================================
-              HEADER
-          ================================================= */}
+          <div className="mx-auto max-w-7xl">
 
-          <div className="mb-7 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            {/* =================================================
+                HEADER
+            ================================================= */}
 
-            <div>
+            <div className="mb-7 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
-              <div className="flex items-center gap-3">
+              <div>
 
-                {/* BACK BUTTON */}
+                <div className="flex items-center gap-3">
 
-                <Link
-                  href="/management/admin"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-[#f5b942] hover:bg-[#fff9eb] hover:text-[#a86f00]"
-                  title="Back to Admin Dashboard"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Link>
+                  {/* BACK BUTTON */}
 
-                {/* GOLD LINE */}
+                  <Link
+                    href="/management/admin"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-[#f5b942] hover:bg-[#fff9eb] hover:text-[#a86f00]"
+                    title="Back to Admin Dashboard"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Link>
 
-                <div className="h-8 w-1 rounded-full bg-[#f5b942]" />
+                  {/* GOLD LINE */}
 
-                {/* PAGE TITLE */}
+                  <div className="h-8 w-1 rounded-full bg-[#f5b942]" />
 
-                <h1 className="text-3xl font-bold tracking-tight text-[#17191d]">
-                  Advance Payments
-                </h1>
+                  {/* PAGE TITLE */}
 
-              </div>
+                  <h1 className="text-3xl font-bold tracking-tight text-[#17191d]">
+                    Advance Payments
+                  </h1>
 
-              <p className="mt-2 ml-4 text-sm text-gray-500">
-                View and manage recent employee advance payments.
-              </p>
+                </div>
 
-            </div>
-
-            {/* ADD ADVANCE */}
-
-            <Link
-              href="/advance/add"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#17191d] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-black"
-            >
-              <Plus className="h-4 w-4" />
-              Add Advance
-            </Link>
-
-          </div>
-
-          {/* =================================================
-              SEARCH + FILTER
-          ================================================= */}
-
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-
-              {/* SEARCH */}
-
-              <div className="relative flex-1">
-
-                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) =>
-                    setSearch(e.target.value)
-                  }
-                  placeholder="Search employee name, description or amount..."
-                  className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 pl-11 pr-4 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-[#d59618] focus:bg-white focus:ring-2 focus:ring-[#f5b942]/20"
-                />
+                <p className="mt-2 ml-4 text-sm text-gray-500">
+                  View and manage recent employee advance payments.
+                </p>
 
               </div>
 
-              {/* FILTER BUTTON */}
+              {/* ADD ADVANCE */}
 
-              <button
-                type="button"
-                onClick={() =>
-                  setShowFilters(!showFilters)
-                }
-                className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg border px-5 text-sm font-semibold transition ${
-                  showFilters
-                    ? "border-[#d59618] bg-[#fff9eb] text-[#a86f00]"
-                    : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                }`}
+              <Link
+                href="/advance/add"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#17191d] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-black"
               >
-                <SlidersHorizontal className="h-4 w-4" />
-                Filters
-              </button>
-
-              {/* RESET */}
-
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Reset
-              </button>
+                <Plus className="h-4 w-4" />
+                Add Advance
+              </Link>
 
             </div>
 
             {/* =================================================
-                FILTER OPTIONS
+                FILTERS
             ================================================= */}
 
-            {showFilters && (
-              <div className="mt-5 grid grid-cols-1 gap-4 border-t border-gray-100 pt-5 md:grid-cols-2">
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
 
                 {/* PERIOD */}
 
@@ -587,7 +508,7 @@ export default function AdvancePaymentsPage() {
                         e.target.value as PeriodFilter
                       )
                     }
-                    className="h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#d59618] focus:ring-2 focus:ring-[#f5b942]/20"
+                    className="h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-[#d59618] focus:ring-2 focus:ring-[#f5b942]/20"
                   >
                     <option value="all">
                       All Time
@@ -642,353 +563,346 @@ export default function AdvancePaymentsPage() {
                 </div>
 
               </div>
-            )}
-
-          </div>
-
-          {/* =================================================
-              SUMMARY CARDS
-          ================================================= */}
-
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
-            <SummaryCard
-              icon={
-                <Wallet className="h-5 w-5" />
-              }
-              title="Recent Advances"
-              value={filteredAdvances.length.toString()}
-              subtitle="Payments found"
-              iconClass="bg-amber-50 text-amber-600"
-            />
-
-            <SummaryCard
-              icon={
-                <IndianRupee className="h-5 w-5" />
-              }
-              title="Total Advance"
-              value={`₹${totalAdvance.toLocaleString(
-                "en-IN"
-              )}`}
-              subtitle="Filtered amount"
-              iconClass="bg-emerald-50 text-emerald-600"
-            />
-
-            <SummaryCard
-              icon={
-                <Wallet className="h-5 w-5" />
-              }
-              title="Cash"
-              value={`₹${totalCash.toLocaleString(
-                "en-IN"
-              )}`}
-              subtitle="Cash advances"
-              iconClass="bg-blue-50 text-blue-600"
-            />
-
-            <SummaryCard
-              icon={
-                <Building2 className="h-5 w-5" />
-              }
-              title="Online"
-              value={`₹${totalOnline.toLocaleString(
-                "en-IN"
-              )}`}
-              subtitle="Online advances"
-              iconClass="bg-violet-50 text-violet-600"
-            />
-
-          </div>
-
-          {/* =================================================
-              TABLE HEADER
-          ================================================= */}
-
-          <div className="mt-8 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
-            <div>
-
-              <h2 className="text-lg font-bold text-[#17191d]">
-                Recent Advance Payments
-              </h2>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Latest employee advance payment records.
-              </p>
 
             </div>
 
-            {/* EXPORT */}
+            {/* =================================================
+                SUMMARY CARDS
+            ================================================= */}
 
-            <ExportTable
-              data={exportData}
-              columns={[
-                {
-                  header: "Employee",
-                  key: "employee",
-                },
-                {
-                  header: "Description",
-                  key: "description",
-                },
-                {
-                  header: "Branch",
-                  key: "branch",
-                },
-                {
-                  header: "Date",
-                  key: "date",
-                },
-                {
-                  header: "Cash",
-                  key: "cash",
-                },
-                {
-                  header: "Online",
-                  key: "online",
-                },
-                {
-                  header: "Total",
-                  key: "total",
-                },
-              ]}
-              fileName="advance-payments"
-              disabled={!filteredAdvances.length}
-            />
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-          </div>
+              <SummaryCard
+                icon={
+                  <Wallet className="h-5 w-5" />
+                }
+                title="Recent Advances"
+                value={filteredAdvances.length.toString()}
+                subtitle="Payments found"
+                iconClass="bg-amber-50 text-amber-600"
+              />
 
-          {/* =================================================
-              TABLE
-          ================================================= */}
+              <SummaryCard
+                icon={
+                  <IndianRupee className="h-5 w-5" />
+                }
+                title="Total Advance"
+                value={`₹${totalAdvance.toLocaleString(
+                  "en-IN"
+                )}`}
+                subtitle="Filtered amount"
+                iconClass="bg-emerald-50 text-emerald-600"
+              />
 
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+              <SummaryCard
+                icon={
+                  <Wallet className="h-5 w-5" />
+                }
+                title="Cash"
+                value={`₹${totalCash.toLocaleString(
+                  "en-IN"
+                )}`}
+                subtitle="Cash advances"
+                iconClass="bg-blue-50 text-blue-600"
+              />
 
-            <div className="overflow-x-auto">
+              <SummaryCard
+                icon={
+                  <Building2 className="h-5 w-5" />
+                }
+                title="Online"
+                value={`₹${totalOnline.toLocaleString(
+                  "en-IN"
+                )}`}
+                subtitle="Online advances"
+                iconClass="bg-violet-50 text-violet-600"
+              />
 
-              <table className="w-full min-w-[850px] text-left">
+            </div>
 
-                {/* =================================================
-                    TABLE HEAD
-                ================================================= */}
+            {/* =================================================
+                TABLE HEADER
+            ================================================= */}
 
-                <thead className="border-b border-gray-200 bg-[#fafafa]">
+            <div className="mt-8 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
-                  <tr>
+              <div>
 
-                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">
-                      Employee
-                    </th>
+                <h2 className="text-lg font-bold text-[#17191d]">
+                  Recent Advance Payments
+                </h2>
 
-                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">
-                      Description
-                    </th>
+                <p className="mt-1 text-sm text-gray-500">
+                  Latest employee advance payment records.
+                </p>
 
-                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">
-                      Branch
-                    </th>
+              </div>
 
-                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">
-                      Date
-                    </th>
+              {/* RESET + EXPORT */}
 
-                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">
-                      Cash
-                    </th>
+              <div className="flex items-center gap-3">
 
-                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">
-                      Online
-                    </th>
+                {/* RESET */}
 
-                    <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wide text-gray-500">
-                      Total
-                    </th>
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-[#f5b942] hover:bg-[#fff9eb] hover:text-gray-900"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Reset
+                </button>
 
-                  </tr>
+                {/* EXPORT */}
 
-                </thead>
+                <ExportTable
+                  data={exportData}
+                  columns={[
+                    {
+                      header: "Employee",
+                      key: "employee",
+                    },
+                    {
+                      header: "Description",
+                      key: "description",
+                    },
+                    {
+                      header: "Branch",
+                      key: "branch",
+                    },
+                    {
+                      header: "Date",
+                      key: "date",
+                    },
+                    {
+                      header: "Cash",
+                      key: "cash",
+                    },
+                    {
+                      header: "Online",
+                      key: "online",
+                    },
+                    {
+                      header: "Total",
+                      key: "total",
+                    },
+                  ]}
+                  fileName="advance-payments"
+                  disabled={!filteredAdvances.length}
+                />
 
-                {/* =================================================
-                    TABLE BODY
-                ================================================= */}
+              </div>
 
-                <tbody className="divide-y divide-gray-100">
+            </div>
 
-                  {loading ? (
+            {/* =================================================
+                TABLE
+            ================================================= */}
+
+            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+
+              <div className="overflow-x-auto">
+
+                <table className="w-full min-w-[850px] text-left">
+
+                  {/* =================================================
+                      TABLE HEAD
+                  ================================================= */}
+
+                  <thead className="border-b border-gray-200 bg-[#fafafa]">
 
                     <tr>
 
-                      <td
-                        colSpan={7}
-                        className="px-6 py-16 text-center"
-                      >
+                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">
+                        Employee
+                      </th>
 
-                        <div className="flex flex-col items-center justify-center">
+                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">
+                        Description
+                      </th>
 
-                          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-[#f5b942]" />
+                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">
+                        Branch
+                      </th>
 
-                          <p className="mt-3 text-sm font-medium text-gray-500">
-                            Loading advance payments...
-                          </p>
+                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">
+                        Date
+                      </th>
 
-                        </div>
+                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">
+                        Cash
+                      </th>
 
-                      </td>
+                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">
+                        Online
+                      </th>
+
+                      <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wide text-gray-500">
+                        Total
+                      </th>
 
                     </tr>
 
-                  ) : filteredAdvances.length > 0 ? (
+                  </thead>
 
-                    filteredAdvances.map(
-                      (advance, index) => (
+                  {/* =================================================
+                      TABLE BODY
+                  ================================================= */}
 
-                        <tr
-                          key={`${advance.id}-${advance.date}-${index}`}
-                          className="transition hover:bg-[#fffaf0]"
-                        >
+                  <tbody className="divide-y divide-gray-100">
 
-                          {/* =================================================
-                              EMPLOYEE
-                          ================================================= */}
+                    {filteredAdvances.length > 0 ? (
 
-                          <td className="px-6 py-4">
+                      filteredAdvances.map(
+                        (advance, index) => (
 
-                            <div className="flex items-center gap-3">
+                          <tr
+                            key={`${advance.id}-${advance.date}-${index}`}
+                            className="transition hover:bg-[#fffaf0]"
+                          >
 
-                              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
+                            {/* =================================================
+                                EMPLOYEE
+                            ================================================= */}
 
-                                <UserRound className="h-4 w-4" />
+                            <td className="px-6 py-4">
+
+                              <div className="flex items-center gap-3">
+
+                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
+                                  <UserRound className="h-4 w-4" />
+                                </div>
+
+                                <span className="text-sm font-semibold text-[#17191d]">
+                                  {advance.employee}
+                                </span>
 
                               </div>
 
-                              <span className="text-sm font-semibold text-[#17191d]">
-                                {advance.employee}
+                            </td>
+
+                            {/* =================================================
+                                DESCRIPTION
+                            ================================================= */}
+
+                            <td className="px-6 py-4 text-sm text-gray-600">
+                              {advance.description || "-"}
+                            </td>
+
+                            {/* =================================================
+                                BRANCH
+                            ================================================= */}
+
+                            <td className="px-6 py-4">
+
+                              <span
+                                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getBranchColor(
+                                  advance.branchId
+                                )}`}
+                              >
+                                {advance.branch}
                               </span>
 
-                            </div>
+                            </td>
 
-                          </td>
+                            {/* =================================================
+                                DATE
+                            ================================================= */}
 
-                          {/* =================================================
-                              DESCRIPTION
-                          ================================================= */}
+                            <td className="px-6 py-4 text-sm text-gray-600">
 
-                          <td className="px-6 py-4 text-sm text-gray-600">
-                            {advance.description || "-"}
-                          </td>
+                              {new Date(
+                                `${advance.date}T00:00:00`
+                              ).toLocaleDateString(
+                                "en-IN"
+                              )}
 
-                          {/* =================================================
-                              BRANCH
-                          ================================================= */}
+                            </td>
 
-                          <td className="px-6 py-4">
+                            {/* =================================================
+                                CASH
+                            ================================================= */}
 
-                            <span
-                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getBranchColor(
-                                advance.branchId
-                              )}`}
-                            >
-                              {advance.branch}
-                            </span>
+                            <td className="px-6 py-4 text-sm font-medium text-gray-700">
 
-                          </td>
+                              ₹
+                              {advance.cash.toLocaleString(
+                                "en-IN"
+                              )}
 
-                          {/* =================================================
-                              DATE
-                          ================================================= */}
+                            </td>
 
-                          <td className="px-6 py-4 text-sm text-gray-600">
+                            {/* =================================================
+                                ONLINE
+                            ================================================= */}
 
-                            {new Date(
-                              `${advance.date}T00:00:00`
-                            ).toLocaleDateString(
-                              "en-IN"
-                            )}
+                            <td className="px-6 py-4 text-sm font-medium text-gray-700">
 
-                          </td>
+                              ₹
+                              {advance.online.toLocaleString(
+                                "en-IN"
+                              )}
 
-                          {/* =================================================
-                              CASH
-                          ================================================= */}
+                            </td>
 
-                          <td className="px-6 py-4 text-sm font-medium text-gray-700">
+                            {/* =================================================
+                                TOTAL
+                            ================================================= */}
 
-                            ₹
-                            {advance.cash.toLocaleString(
-                              "en-IN"
-                            )}
+                            <td className="px-6 py-4 text-right text-sm font-bold text-[#17191d]">
 
-                          </td>
+                              ₹
+                              {(
+                                advance.cash +
+                                advance.online
+                              ).toLocaleString(
+                                "en-IN"
+                              )}
 
-                          {/* =================================================
-                              ONLINE
-                          ================================================= */}
+                            </td>
 
-                          <td className="px-6 py-4 text-sm font-medium text-gray-700">
+                          </tr>
 
-                            ₹
-                            {advance.online.toLocaleString(
-                              "en-IN"
-                            )}
-
-                          </td>
-
-                          {/* =================================================
-                              TOTAL
-                          ================================================= */}
-
-                          <td className="px-6 py-4 text-right text-sm font-bold text-[#17191d]">
-
-                            ₹
-                            {(
-                              advance.cash +
-                              advance.online
-                            ).toLocaleString(
-                              "en-IN"
-                            )}
-
-                          </td>
-
-                        </tr>
-
+                        )
                       )
-                    )
 
-                  ) : (
+                    ) : (
 
-                    <tr>
+                      <tr>
 
-                      <td
-                        colSpan={7}
-                        className="px-6 py-16 text-center"
-                      >
+                        <td
+                          colSpan={7}
+                          className="px-6 py-16 text-center"
+                        >
 
-                        <Wallet className="mx-auto h-10 w-10 text-gray-300" />
+                          <Wallet className="mx-auto h-10 w-10 text-gray-300" />
 
-                        <p className="mt-3 text-sm font-semibold text-gray-600">
-                          No advance payments found
-                        </p>
+                          <p className="mt-3 text-sm font-semibold text-gray-600">
+                            No advance payments found
+                          </p>
 
-                        <p className="mt-1 text-xs text-gray-400">
-                          Try changing your search or filters.
-                        </p>
+                          <p className="mt-1 text-xs text-gray-400">
+                            Try changing your filters.
+                          </p>
 
-                      </td>
+                        </td>
 
-                    </tr>
+                      </tr>
 
-                  )}
+                    )}
 
-                </tbody>
+                  </tbody>
 
-              </table>
+                </table>
+
+              </div>
 
             </div>
 
           </div>
 
-        </div>
-      </section>
+        </section>
+      )}
 
     </main>
   );

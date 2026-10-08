@@ -426,101 +426,105 @@ const resetFilters = () => {
 // BRANCH EMPLOYEE ADVANCE CHART
 // =========================
 
-const branchEmployeeAdvanceData = useMemo(() => {
-  if (reportType !== "branch") {
-    return [];
-  }
+type BranchEmployeeAdvanceChartData = {
+  branch: string;
+  employee: string;
+  salary: number;
+  totalAdvance: number;
+  advancePercentage: number;
+  isOverLimit: boolean;
+};
 
-  // =========================
-  // ALL BRANCHES
-  // =========================
-  if (!selectedBranch) {
-    const branchMap: Record<
+const branchEmployeeAdvanceData =
+  useMemo<BranchEmployeeAdvanceChartData[]>(() => {
+    if (reportType !== "branch") {
+      return [];
+    }
+
+    // =========================
+    // ALL BRANCHES
+    // =========================
+
+    if (!selectedBranch) {
+      const branchMap: Record<
+        string,
+        BranchEmployeeAdvanceChartData
+      > = {};
+
+      advances.forEach((advance) => {
+        if (!branchMap[advance.branch]) {
+          branchMap[advance.branch] = {
+            branch: advance.branch,
+            employee: "",
+            salary: 0,
+            totalAdvance: 0,
+            advancePercentage: 0,
+            isOverLimit: false,
+          };
+        }
+
+        branchMap[advance.branch].totalAdvance +=
+          advance.cash + advance.online;
+      });
+
+      return Object.values(branchMap);
+    }
+
+    // =========================
+    // SELECTED BRANCH
+    // EMPLOYEE WISE
+    // =========================
+
+    const employeeMap: Record<
       string,
-      {
-        branch: string;
-        totalAdvance: number;
-      }
+      BranchEmployeeAdvanceChartData
     > = {};
 
-    advances.forEach((advance) => {
-      if (!branchMap[advance.branch]) {
-        branchMap[advance.branch] = {
+    filteredAdvances.forEach((advance) => {
+      const employeeId = advance.employeeId;
+
+      if (!employeeMap[employeeId]) {
+        const employeeData = employees.find(
+          (employee) => employee.id === employeeId
+        );
+
+        employeeMap[employeeId] = {
           branch: advance.branch,
+          employee:
+            employeeData?.name ??
+            advance.employee ??
+            "Unknown Employee",
+          salary: employeeData?.salary ?? 0,
           totalAdvance: 0,
+          advancePercentage: 0,
+          isOverLimit: false,
         };
       }
 
-      branchMap[advance.branch].totalAdvance +=
+      employeeMap[employeeId].totalAdvance +=
         advance.cash + advance.online;
     });
 
-    return Object.values(branchMap);
-  }
+    Object.values(employeeMap).forEach((employee) => {
+      if (employee.salary > 0) {
+        employee.advancePercentage =
+          (employee.totalAdvance / employee.salary) * 100;
+      } else {
+        employee.advancePercentage = 0;
+      }
 
-  // =========================
-  // SELECTED BRANCH - EMPLOYEE WISE
-  // =========================
- const employeeMap: Record<
-  string,
-  {
-    employee: string;
-    salary: number;
-    totalAdvance: number;
-    advancePercentage: number;
-    isOverLimit: boolean;
-  }
-> = {};
+      employee.isOverLimit =
+        employee.advancePercentage > 50;
+    });
 
-  filteredAdvances.forEach((advance) => {
-  const employeeId = advance.employeeId;
-
-  if (!employeeMap[employeeId]) {
-    const employeeData = employees.find(
-      (employee) => employee.id === employeeId
-    );
-
-    employeeMap[employeeId] = {
-      employee:
-        employeeData?.name ??
-        advance.employee ??
-        "Unknown Employee",
-
-      salary: employeeData?.salary ?? 0,
-
-      totalAdvance: 0,
-
-      advancePercentage: 0,
-
-      isOverLimit: false,
-    };
-  }
-
-  employeeMap[employeeId].totalAdvance +=
-    advance.cash + advance.online;
-});
-
-  Object.values(employeeMap).forEach((employee) => {
-  if (employee.salary > 0) {
-    employee.advancePercentage =
-      (employee.totalAdvance / employee.salary) * 100;
-  } else {
-    employee.advancePercentage = 0;
-  }
-
-  employee.isOverLimit =
-    employee.advancePercentage > 50;
-});
-
-  return Object.values(employeeMap);
-}, [
-  advances,
-  filteredAdvances,
-  employees,
-  reportType,
-  selectedBranch,
-]);
-
+    return Object.values(employeeMap);
+  }, [
+    advances,
+    filteredAdvances,
+    employees,
+    reportType,
+    selectedBranch,
+  ]);
 
   const advanceExportData = filteredAdvances.map((advance) => ({
   employee: advance.employee,

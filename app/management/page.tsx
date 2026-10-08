@@ -23,8 +23,8 @@ const managementItems = [
     icon: UserMinus,
   },
   {
-    title: "Customer Report",
-    description: "View customer activity and generate customer reports.",
+    title: "Salary & Payroll", 
+    description: "View salary information and generate salary reports and salary slips.",
     href: "#",
     icon: BarChart3,
   },
@@ -61,13 +61,12 @@ export default function ManagementPage() {
                 </h1>
 
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-500 md:text-base">
-                  Manage your salon administration, employees and customer
-                  reports from one place.
+                  HairPort salon ka administration, employees aur customer reports ko ek hi jagah se easily manage karein..
                 </p>
               </div>
 
               {/* Small summary */}
-              <div className="rounded-xl border border-[#e5dfd2] bg-white px-5 py-3 shadow-sm">
+              {/* <div className="rounded-xl border border-[#e5dfd2] bg-white px-5 py-3 shadow-sm">
                 <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
                   Total Modules
                 </p>
@@ -75,7 +74,7 @@ export default function ManagementPage() {
                 <p className="mt-1 text-2xl font-bold text-[#17191d]">
                   03
                 </p>
-              </div>
+              </div> */}
 
             </div>
           </div>

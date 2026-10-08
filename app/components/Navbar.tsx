@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export default function Navbar() {
-  const userName = "Alfez Uddin";
+  const userName = "Irfan shaikh";
 
   return (
     <nav className="absolute left-0 top-0 z-50 w-full">

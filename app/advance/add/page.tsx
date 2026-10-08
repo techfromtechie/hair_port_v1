@@ -369,14 +369,11 @@ export default function AddAdvancePage() {
               {/* ================= ROW 3 ================= */}
               <div className="grid grid-cols-1 gap-6">
 
-                {/* Description */}
                 <FormTextarea
-                  label="Description"
-                  placeholder="Enter advance description..."
-                  rows={3}
-                  name="description"
-                />
-
+  label="Description"
+  placeholder="Enter description"
+  rows={3}
+/>
               </div>
 
               {/* ================= ACTIONS ================= */}

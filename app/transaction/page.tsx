@@ -252,10 +252,10 @@ const getBranchColor = (branchName: string) => {
       // BRANCH FILTER
       // =========================
       const matchesBranch =
-        reportType === "branch"
-          ? !selectedBranch ||
-            transaction.branch === selectedBranch
-          : true;
+  reportType === "branch"
+    ? !selectedBranch ||
+      transaction.branchId === selectedBranch
+    : true;
 
       // =========================
       // DATE FILTER
@@ -324,8 +324,8 @@ return filtered;
 
   const transactionExportData = filteredTransactions.map(
   (transaction) => ({
+    branch: transaction.branch,
     employee: transaction.employee,
-    
     date: transaction.date,
     cash: transaction.cash,
     online: transaction.online,
@@ -812,38 +812,29 @@ const selectedPeriod =
         </div>
 
         {/* Export Dropdown */}
-        <ExportTable
-          data={transactionExportData}
-          columns={[
-            {
-              header: "Date",
-              key: "date",
-            },
-            {
-              header: "Branch",
-              key: "branch" as keyof (typeof transactionExportData)[number],
-            },
-            {
-              header: "Employee Name",
-              key: "employee",
-            },
-           
-            {
-              header: "Cash",
-              key: "cash",
-            },
-            {
-              header: "Online",
-              key: "online",
-            },
-            {
-              header: "Total Amount",
-              key: "total",
-            },
-          ]}
-          fileName="Branch-Wise-Employee-Transactions"
-          disabled={!isReportReady || !filteredTransactions.length}
-        />
+    <ExportTable
+  data={transactionExportData}
+  columns={[
+    {
+      header: "Date",
+      key: "date",
+    },
+    {
+      header: "Cash",
+      key: "cash",
+    },
+    {
+      header: "Online",
+      key: "online",
+    },
+    {
+      header: "Total",
+      key: "total",
+    },
+  ]}
+  fileName="Employee-Transaction-Report"
+  disabled={!isReportReady}
+/>
 
       </div>
 
@@ -982,45 +973,36 @@ const selectedPeriod =
   </div>
 
   <ExportTable
-    data={transactionExportData}
-    columns={[
-      ...(reportType === "branch"
-        ? [
-            {
-              header: "Employee",
-              key: "employee" as keyof (typeof transactionExportData)[number],
-            },
-            {
-              header: "Employee No",
-              key: "employeeNumber" as keyof (typeof transactionExportData)[number],
-            },
-          ]
-        : []),
-
-      {
-        header: "Date",
-        key: "date",
-      },
-      {
-        header: "Cash",
-        key: "cash",
-      },
-      {
-        header: "Online",
-        key: "online",
-      },
-      {
-        header: "Total",
-        key: "total",
-      },
-    ]}
-    fileName={
-      reportType === "employee"
-        ? "Employee-Transaction-Report"
-        : "Branch-Transaction-Report"
-    }
-    disabled={!isReportReady}
-  />
+  data={transactionExportData}
+  columns={[
+    {
+      header: "Date",
+      key: "date",
+    },
+    {
+      header: "Branch",
+      key: "branch",
+    },
+    {
+      header: "Employee Name",
+      key: "employee",
+    },
+    {
+      header: "Cash",
+      key: "cash",
+    },
+    {
+      header: "Online",
+      key: "online",
+    },
+    {
+      header: "Total",
+      key: "total",
+    },
+  ]}
+  fileName="Branch-Wise-Employee-Transactions"
+  disabled={!isReportReady}
+/>
 </div>
 
             <div className="overflow-x-auto">
@@ -1034,11 +1016,7 @@ const selectedPeriod =
   Employee Name
 </th>
 
-{reportType === "branch" && (
-  <th className="px-6 py-4 font-semibold">
-    Employee No
-  </th>
-)}
+
 
                     <th className="px-6 py-4 font-semibold">
                       Date
@@ -1078,11 +1056,7 @@ const selectedPeriod =
   {transaction.employee}
 </td>
 
-{reportType === "branch" && (
-  <td className="px-6 py-4 text-sm text-gray-600">
-    {transaction.employeeNumber}
-  </td>
-)}
+
 
                           <td className="px-6 py-4 text-sm font-medium text-gray-800">
                             {transaction.date}
@@ -1109,7 +1083,7 @@ const selectedPeriod =
                     <tr>
 
                       <td
-                        colSpan={reportType === "branch" ? 6 : 4}
+                        colSpan={5}
                         className="px-6 py-12 text-center"
                       >
 

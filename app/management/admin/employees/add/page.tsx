@@ -377,13 +377,24 @@ export default function AddEmployeePage() {
             {/* =================================================
                 ACTIONS
             ================================================= */}
+<div className="mt-8 border-t border-gray-100 pt-6">
+  <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+    <button
+      type="button"
+      onClick={handleReset}
+      className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+    >
+      Reset
+    </button>
 
-            <div className="mt-8 border-t border-gray-100 pt-6">
-              <FormActions
-                onReset={handleReset}
-                submitLabel="Add Employee"
-              />
-            </div>
+    <button
+      type="submit"
+      className="rounded-lg bg-[#f5b942] px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-[#e0a82f]"
+    >
+      Add Employee
+    </button>
+  </div>
+</div>
 
           </form>
 

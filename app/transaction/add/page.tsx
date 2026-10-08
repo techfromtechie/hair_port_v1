@@ -347,13 +347,11 @@ export default function AddTransactionPage() {
               {/* ================= ROW 3 ================= */}
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 
-                {/* Description */}
-                <FormTextarea
-                  label="Description"
-                  placeholder="Enter transaction description..."
-                  rows={1}
-                  name="description"
-                />
+               <FormTextarea
+  label="Description"
+  placeholder="Enter description"
+  rows={3}
+/>
 
                 {/* Transaction Date */}
                 <FormInput

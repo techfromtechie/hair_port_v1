@@ -260,7 +260,7 @@ export default function AddAdvancePage() {
       <section className="px-5 py-10 md:px-8">
         <div className="mx-auto max-w-5xl">
 
-          {/* ================= HEADING ================= */}
+         
         {/* ================= HEADING ================= */}
 <div className="mb-8">
 

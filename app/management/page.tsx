@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import Navbar from "../components/Navbar";
+
 import {
   ShieldCheck,
   UserMinus,
   BarChart3,
   ArrowRight,
+  ArrowLeft,
 } from "lucide-react";
+
 
 const managementItems = [
   {
@@ -46,38 +49,38 @@ export default function ManagementPage() {
 
         <div className="mx-auto max-w-6xl">
 
-          {/* ================= HEADING ================= */}
-          <div className="mb-12">
+         
+{/* ================= HEADING ================= */}
+<div className="mb-12">
+  <p className="text-sm font-semibold uppercase tracking-[4px] text-[#d59618]">
+    Management
+  </p>
 
-            <p className="text-sm font-semibold uppercase tracking-[4px] text-[#d59618]">
-              Management
-            </p>
+  <div className="mt-3 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+    <div>
+      <div className="flex items-center gap-3">
+        {/* BACK ARROW */}
+        <Link
+          href="/"
+          aria-label="Back to Home"
+          title="Back to Home"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#e5dfd2] bg-white text-gray-600 transition hover:border-[#f5b942] hover:bg-[#fff9eb] hover:text-[#a86f00]"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
 
-            <div className="mt-3 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <h1 className="text-4xl font-bold tracking-tight text-[#17191d] md:text-5xl">
+          Management
+        </h1>
+      </div>
 
-              <div>
-                <h1 className="text-4xl font-bold tracking-tight text-[#17191d] md:text-5xl">
-                  Management
-                </h1>
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-500 md:text-base">
+        HairPort salon ka administration, employees aur customer reports ko ek hi jagah se easily manage karein.
+      </p>
+    </div>
+  </div>
+</div>
 
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-500 md:text-base">
-                  HairPort salon ka administration, employees aur customer reports ko ek hi jagah se easily manage karein..
-                </p>
-              </div>
-
-              {/* Small summary */}
-              {/* <div className="rounded-xl border border-[#e5dfd2] bg-white px-5 py-3 shadow-sm">
-                <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                  Total Modules
-                </p>
-
-                <p className="mt-1 text-2xl font-bold text-[#17191d]">
-                  03
-                </p>
-              </div> */}
-
-            </div>
-          </div>
 
           {/* ================= CARDS ================= */}
           <div className="grid gap-6 md:grid-cols-3">

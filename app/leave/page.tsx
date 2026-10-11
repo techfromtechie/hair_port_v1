@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, RotateCcw } from "lucide-react";
 import Navbar from "@/app/components/Navbar";
 import ExportTable from "@/app/components/ExportTable";
 import EditButton from "@/app/components/EditButton";
@@ -164,7 +164,7 @@ export default function LeavesPage() {
           data: leaveData,
           error: leaveError,
         } = await supabase
-          .from("leave")
+          .from("leaves")
           .select(`
             id,
             employee_id,
@@ -409,6 +409,12 @@ export default function LeavesPage() {
         : 0
     ];
   };
+
+  const handleResetFilters = () => {
+  setSelectedEmployee("");
+  setFromDate("");
+  setToDate("");
+};
 
   // =========================
   // EXPORT DATA
@@ -669,36 +675,34 @@ export default function LeavesPage() {
 
                       {/* ================= EXPORT ================= */}
 
-                      <ExportTable
-                        data={leaveExportData}
-                        columns={[
-                          {
-                            header:
-                              "Employee Name",
-                            key: "employeeName",
-                          },
-                          {
-                            header: "Branch",
-                            key: "branch",
-                          },
-                          {
-                            header:
-                              "Leave Type",
-                            key: "leaveType",
-                          },
-                          {
-                            header: "Date",
-                            key: "date",
-                          },
-                        ]}
-                        fileName="Employee-Leave-Report"
-                        disabled={
-                          !selectedEmployee ||
-                          !fromDate ||
-                          !toDate ||
-                          !!isInvalidDateRange
-                        }
-                      />
+                     
+{/* EXPORT AND RESET BUTTONS */}
+<div className="flex flex-wrap items-center gap-3">
+  <ExportTable
+    data={leaveExportData}
+    columns={[
+      { header: "Employee Name", key: "employeeName" },
+      { header: "Branch", key: "branch" },
+      { header: "Leave Type", key: "leaveType" },
+      { header: "Date", key: "date" },
+    ]}
+    fileName="Employee-Leave-Report"
+    disabled={
+      filteredLeaves.length === 0 ||
+      !!isInvalidDateRange
+    }
+  />
+
+  <button
+    type="button"
+    onClick={handleResetFilters}
+    className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-[#f5b942] hover:bg-[#fff9eb] hover:text-[#a86f00]"
+  >
+    <RotateCcw className="h-4 w-4" />
+    Reset
+  </button>
+</div>
+
                     </div>
 
                     {/* ================= TABLE ================= */}

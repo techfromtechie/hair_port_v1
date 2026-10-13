@@ -72,6 +72,7 @@ export default function AdvancePaymentReportPage() {
   
 
   useEffect(() => {
+    
     const fetchAdvanceReportData = async () => {
       try {
         setLoading(true);

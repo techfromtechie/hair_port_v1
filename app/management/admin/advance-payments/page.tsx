@@ -60,179 +60,190 @@ export default function AdvancePaymentsPage() {
   // =========================================================
 
   useEffect(() => {
-    const fetchAdvanceData = async () => {
-      try {
-        setLoading(true);
+  let cancelled = false;
 
-        // =====================================================
-        // FETCH EMPLOYEES
-        // =====================================================
+  const fetchAdvanceData = async () => {
+    setLoading(true);
 
-        const {
-          data: employeeData,
-          error: employeeError,
-        } = await supabase
-          .from("employees")
-          .select("id, name")
-          .order("name", { ascending: true });
+    try {
+      // 1. Fetch employees
+      const {
+        data: employeeData,
+        error: employeeError,
+      } = await supabase
+        .from("employees")
+        .select("id, name");
 
-        if (employeeError) {
-          console.error(
-            "Employee fetch error:",
-            employeeError
-          );
+      if (employeeError) {
+        throw new Error(
+          `Employees fetch failed: ${employeeError.message}`
+        );
+      }
 
-          toast.error("Failed to load employees.");
-          return;
-        }
+      // 2. Fetch branches
+      const {
+        data: branchData,
+        error: branchError,
+      } = await supabase
+        .from("branches")
+        .select("id, name");
 
-        const formattedEmployees: Employee[] =
-          (employeeData ?? []).map((employee) => ({
-            id: employee.id,
-            name: employee.name,
-          }));
+      if (branchError) {
+        throw new Error(
+          `Branches fetch failed: ${branchError.message}`
+        );
+      }
 
-        setEmployees(formattedEmployees);
+      // 3. Fetch advance payments
+      // Select all columns to avoid assuming the date column name.
+      // 3. Fetch advance payments from Supabase
+const {
+  data: advanceData,
+  error: advanceError,
+  count: advanceCount,
+} = await supabase
+  .from("advance_payments")
+  .select(
+    "id, employee_id, branch_id, cash, online, description, advance_date",
+    { count: "exact" }
+  )
+  .order("advance_date", { ascending: false });
 
-        // =====================================================
-        // FETCH BRANCHES
-        // =====================================================
+console.log("[Advance Payments] Supabase row count:", advanceCount);
+console.log("[Advance Payments] Fetch error:", advanceError);
+console.log("[Advance Payments] First row:", advanceData?.[0]);
 
-        const {
-          data: branchData,
-          error: branchError,
-        } = await supabase
-          .from("branches")
-          .select("id, name")
-          .order("name", { ascending: true });
+if (advanceError) {
+  throw new Error(
+    `Advance payments fetch failed: ${advanceError.message}`
+  );
+}
 
-        if (branchError) {
-          console.error(
-            "Branch fetch error:",
-            branchError
-          );
+      // 4. Create employee lookup map
+      const employeeMap = new Map<string, string>(
+        (employeeData ?? []).map((employee: any) => [
+          String(employee.id),
+          employee.name ?? "Unknown Employee",
+        ])
+      );
 
-          toast.error("Failed to load branches.");
-          return;
-        }
+      // 5. Create branch lookup map
+      const branchMap = new Map<string, string>(
+        (branchData ?? []).map((branch: any) => [
+          String(branch.id),
+          branch.name ?? "Unknown Branch",
+        ])
+      );
 
-        const formattedBranches: Branch[] =
-          (branchData ?? []).map((branch) => ({
-            id: branch.id,
-            name: branch.name,
-          }));
-
-        setBranches(formattedBranches);
-
-        // =====================================================
-        // CREATE EMPLOYEE MAP
-        // =====================================================
-
-        const employeeMap = new Map(
-          formattedEmployees.map((employee) => [
-            employee.id,
-            employee,
-          ])
+      // 6. Format advance payments
+      const formattedAdvances: Advance[] = (
+        advanceData ?? []
+      ).map((row: any) => {
+        const employeeId = String(
+          row.employee_id ?? row.employeeId ?? ""
         );
 
-        // =====================================================
-        // CREATE BRANCH MAP
-        // =====================================================
-
-        const branchMap = new Map(
-          formattedBranches.map((branch) => [
-            branch.id,
-            branch,
-          ])
+        const branchId = String(
+          row.branch_id ?? row.branchId ?? ""
         );
 
-        // =====================================================
-        // FETCH ADVANCE PAYMENTS
-        // =====================================================
+        // Support common date-column naming conventions.
+        const rawDate =
+          row.advance_date ??
+          row.date ??
+          row.payment_date ??
+          row.created_at ??
+          "";
 
-        const {
-          data: advanceData,
-          error: advanceError,
-        } = await supabase
-          .from("advance_payments")
-          .select(`
-            id,
-            employee_id,
-            branch_id,
-            cash,
-            online,
-            description,
-            advance_date
-          `)
-          .order("advance_date", {
-            ascending: false,
-          });
+        const normalizedDate = rawDate
+          ? String(rawDate).slice(0, 10)
+          : "";
 
-        if (advanceError) {
-          console.error(
-            "Advance payment fetch error:",
-            advanceError
-          );
+        return {
+          id: String(row.id),
 
-          toast.error(
-            "Failed to load advance payments."
-          );
+          employeeId,
+          branchId,
 
-          return;
-        }
+          employee:
+            employeeMap.get(employeeId) ??
+            row.employee_name ??
+            row.employee ??
+            "Unknown Employee",
 
-        // =====================================================
-        // FORMAT ADVANCE DATA
-        // =====================================================
+          branch:
+            branchMap.get(branchId) ??
+            row.branch_name ??
+            row.branch ??
+            "Unknown Branch",
 
-        const formattedAdvances: Advance[] =
-          (advanceData ?? []).map((advance) => {
-            const employee = employeeMap.get(
-              advance.employee_id
-            );
+          cash: Number(row.cash ?? 0),
 
-            const branch = branchMap.get(
-              advance.branch_id
-            );
+          online: Number(
+            row.online ??
+            row.online_amount ??
+            0
+          ),
 
-            return {
-              id: advance.id,
-              employeeId: advance.employee_id,
-              branchId: advance.branch_id,
+          description: String(
+            row.description ??
+            row.remarks ??
+            ""
+          ),
 
-              employee:
-                employee?.name ?? "Unknown Employee",
+          date: normalizedDate,
+        };
+      });
 
-              branch:
-                branch?.name ?? "Unknown Branch",
+      if (cancelled) return;
 
-              cash: Number(advance.cash ?? 0),
-              online: Number(advance.online ?? 0),
+      // 7. Update state
+      setEmployees(
+        (employeeData ?? []).map((employee: any) => ({
+          id: String(employee.id),
+          name: employee.name ?? "",
+        }))
+      );
 
-              description:
-                advance.description ?? "",
+      setBranches(
+        (branchData ?? []).map((branch: any) => ({
+          id: String(branch.id),
+          name: branch.name ?? "",
+        }))
+      );
 
-              date: advance.advance_date,
-            };
-          });
+      setAdvances(formattedAdvances);
 
-        setAdvances(formattedAdvances);
-      } catch (error) {
-        console.error(
-          "Unexpected advance error:",
-          error
-        );
+      console.log(
+        `Total advance payment records: ${formattedAdvances.length}`
+      );
+    } catch (error: any) {
+      console.error(
+        "Advance payments loading error:",
+        error
+      );
 
+      if (!cancelled) {
         toast.error(
-          "Something went wrong while loading advance payments."
+          error?.message ??
+            "Failed to load advance payments."
         );
-      } finally {
+      }
+    } finally {
+      if (!cancelled) {
         setLoading(false);
       }
-    };
+    }
+  };
 
-    fetchAdvanceData();
-  }, []);
+  fetchAdvanceData();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
+
+
 
   // =========================================================
   // TODAY
@@ -304,44 +315,35 @@ export default function AdvancePaymentsPage() {
   // FILTER ADVANCES
   // =========================================================
 
-  const filteredAdvances = useMemo(() => {
-    const startDate = getStartDate(period);
 
-    return advances
-      .filter((advance) => {
-        // ===================================================
-        // BRANCH FILTER
-        // ===================================================
+const filteredAdvances = useMemo(() => {
+  const startDate = getStartDate(period);
 
-        const matchesBranch =
-          !selectedBranch ||
-          advance.branchId === selectedBranch;
+  return advances
+    .filter((advance) => {
+      const matchesBranch =
+        !selectedBranch ||
+        advance.branchId === selectedBranch;
 
-        // ===================================================
-        // PERIOD FILTER
-        // ===================================================
+      const advanceDate = advance.date
+        ? new Date(`${advance.date}T00:00:00`)
+        : null;
 
-        const advanceDate = new Date(
-          `${advance.date}T00:00:00`
-        );
+      const matchesPeriod =
+        !startDate ||
+        (advanceDate !== null &&
+          !Number.isNaN(advanceDate.getTime()) &&
+          advanceDate >= new Date(
+            startDate.getFullYear(),
+            startDate.getMonth(),
+            startDate.getDate()
+          ));
 
-        const matchesPeriod =
-          !startDate ||
-          advanceDate >= startDate;
+      return matchesBranch && matchesPeriod;
+    })
+    .sort((a, b) => b.date.localeCompare(a.date));
+}, [advances, period, selectedBranch]);
 
-        return (
-          matchesBranch &&
-          matchesPeriod
-        );
-      })
-      .sort((a, b) =>
-        b.date.localeCompare(a.date)
-      );
-  }, [
-    advances,
-    period,
-    selectedBranch,
-  ]);
 
   // =========================================================
   // TOTAL ADVANCE
@@ -811,11 +813,16 @@ export default function AdvancePaymentsPage() {
 
                             <td className="px-6 py-4 text-sm text-gray-600">
 
-                              {new Date(
-                                `${advance.date}T00:00:00`
-                              ).toLocaleDateString(
-                                "en-IN"
-                              )}
+                              
+{advance.date &&
+!Number.isNaN(
+  Date.parse(`${advance.date}T00:00:00`)
+)
+  ? new Date(
+      `${advance.date}T00:00:00`
+    ).toLocaleDateString("en-IN")
+  : "-"}
+
 
                             </td>
 

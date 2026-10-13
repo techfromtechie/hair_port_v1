@@ -387,26 +387,8 @@ export default function EditLeavePage() {
               {/* ================= EMPLOYEE + BRANCH ================= */}
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                {/* EMPLOYEE */}
-
-                <FormSelect
-                  label="Employee Name"
-                  placeholder="Select Employee"
-                  options={employees.map(
-                    (item) => ({
-                      label: item.name,
-                      value: item.id,
-                    })
-                  )}
-                  value={employee}
-                  onChange={(e) =>
-                    setEmployee(
-                      e.target.value
-                    )
-                  }
-                  required
-                  name="employee"
-                />
+                
+               
 
                 {/* BRANCH */}
 
@@ -427,6 +409,25 @@ export default function EditLeavePage() {
                   }
                   required
                   name="branch"
+                />
+
+                 <FormSelect
+                  label="Employee Name"
+                  placeholder="Select Employee"
+                  options={employees.map(
+                    (item) => ({
+                      label: item.name,
+                      value: item.id,
+                    })
+                  )}
+                  value={employee}
+                  onChange={(e) =>
+                    setEmployee(
+                      e.target.value
+                    )
+                  }
+                  required
+                  name="employee"
                 />
               </div>
 

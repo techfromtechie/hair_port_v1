@@ -320,36 +320,7 @@ setEmployees(formattedEmployees);
               {/* ================= EMPLOYEE + BRANCH ================= */}
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 
-                {/* Employee */}
-                <FormSelect
-  label="Employee Name"
-  placeholder={
-    loading ? "Loading Employees..." : "Select Employee"
-  }
-  options={filteredEmployees.map((item) => ({
-    label: item.name,
-    value: item.id,
-  }))}
-  value={employee}
-  onChange={(e) => {
-    const selectedEmployeeId = e.target.value;
-
-    setEmployee(selectedEmployeeId);
-
-    const selectedEmployee = employees.find(
-      (item) => item.id === selectedEmployeeId
-    );
-
-    if (selectedEmployee?.branch_id) {
-      setBranch(selectedEmployee.branch_id);
-    } else {
-      setBranch("");
-    }
-  }}
-  required
-  name="employee"
-/>
-                {/* Branch */}
+                   {/* Branch */}
                 <FormSelect
   label="Branch"
   placeholder="Select Branch"
@@ -379,6 +350,37 @@ setEmployees(formattedEmployees);
   required
   name="branch"
 />
+
+                {/* Employee */}
+                <FormSelect
+  label="Employee Name"
+  placeholder={
+    loading ? "Loading Employees..." : "Select Employee"
+  }
+  options={filteredEmployees.map((item) => ({
+    label: item.name,
+    value: item.id,
+  }))}
+  value={employee}
+  onChange={(e) => {
+    const selectedEmployeeId = e.target.value;
+
+    setEmployee(selectedEmployeeId);
+
+    const selectedEmployee = employees.find(
+      (item) => item.id === selectedEmployeeId
+    );
+
+    if (selectedEmployee?.branch_id) {
+      setBranch(selectedEmployee.branch_id);
+    } else {
+      setBranch("");
+    }
+  }}
+  required
+  name="employee"
+/>
+             
 
               </div>
 

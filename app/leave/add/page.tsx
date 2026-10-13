@@ -15,6 +15,7 @@ import { toast } from "react-toastify";
 type Employee = {
   id: string;
   name: string;
+  branch_id: string | null;
 };
 
 type Branch = {
@@ -49,6 +50,20 @@ export default function AddLeavePage() {
 
   const today = new Date().toISOString().split("T")[0];
 
+    // Selected employee ki branch ke according branches filter hongi
+  const filteredBranches = employee
+    ? branches.filter(
+        (item) =>
+          item.id ===
+          employees.find((emp) => emp.id === employee)?.branch_id
+      )
+    : branches;
+
+  // Selected branch ke according employees filter honge
+  const filteredEmployees = branch
+    ? employees.filter((item) => item.branch_id === branch)
+    : employees;
+
   // =========================
   // FETCH EMPLOYEES & BRANCHES
   // =========================
@@ -65,7 +80,8 @@ export default function AddLeavePage() {
             .from("employees")
             .select(`
               id,
-              name
+              name,
+              branch_id
             `)
             .order("name", {
               ascending: true,
@@ -82,13 +98,13 @@ export default function AddLeavePage() {
         }
 
         const formattedEmployees: Employee[] =
-          (employeeData ?? []).map((item) => ({
-            id: item.id,
-            name: item.name,
-          }));
+  (employeeData ?? []).map((item) => ({
+    id: item.id,
+    name: item.name,
+    branch_id: item.branch_id,
+  }));
 
-        setEmployees(formattedEmployees);
-
+setEmployees(formattedEmployees);
         // =========================
         // FETCH BRANCHES
         // =========================
@@ -306,39 +322,63 @@ export default function AddLeavePage() {
 
                 {/* Employee */}
                 <FormSelect
-                  label="Employee Name"
-                  placeholder={
-                    loading
-                      ? "Loading Employees..."
-                      : "Select Employee"
-                  }
-                  options={employees.map((item) => ({
-                    label: item.name,
-                    value: item.id,
-                  }))}
-                  value={employee}
-                  onChange={(e) =>
-                    setEmployee(e.target.value)
-                  }
-                  required
-                  name="employee"
-                />
+  label="Employee Name"
+  placeholder={
+    loading ? "Loading Employees..." : "Select Employee"
+  }
+  options={filteredEmployees.map((item) => ({
+    label: item.name,
+    value: item.id,
+  }))}
+  value={employee}
+  onChange={(e) => {
+    const selectedEmployeeId = e.target.value;
 
+    setEmployee(selectedEmployeeId);
+
+    const selectedEmployee = employees.find(
+      (item) => item.id === selectedEmployeeId
+    );
+
+    if (selectedEmployee?.branch_id) {
+      setBranch(selectedEmployee.branch_id);
+    } else {
+      setBranch("");
+    }
+  }}
+  required
+  name="employee"
+/>
                 {/* Branch */}
                 <FormSelect
-                  label="Branch"
-                  placeholder="Select Branch"
-                  options={branches.map((item) => ({
-                    label: item.name,
-                    value: item.id,
-                  }))}
-                  value={branch}
-                  onChange={(e) =>
-                    setBranch(e.target.value)
-                  }
-                  required
-                  name="branch"
-                />
+  label="Branch"
+  placeholder="Select Branch"
+  options={filteredBranches.map((item) => ({
+    label: item.name,
+    value: item.id,
+  }))}
+  value={branch}
+  onChange={(e) => {
+    const selectedBranchId = e.target.value;
+
+    setBranch(selectedBranchId);
+
+    // Agar selected employee is branch ka nahi hai,
+    // to employee selection reset kar dein.
+    const selectedEmployee = employees.find(
+      (item) => item.id === employee
+    );
+
+    if (
+      selectedEmployee &&
+      selectedEmployee.branch_id !== selectedBranchId
+    ) {
+      setEmployee("");
+    }
+  }}
+  required
+  name="branch"
+/>
 
               </div>
 

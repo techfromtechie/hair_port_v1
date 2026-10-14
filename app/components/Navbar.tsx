@@ -1,13 +1,104 @@
 "use client";
 
-import { useState } from "react";
+
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/app/lib/supabase";
+
+
 
 export default function Navbar() {
-  const userName = "Irfan shaikh";
+  
+const router = useRouter();
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [openMobileMenu, setOpenMobileMenu] = useState<string | null>(null);
+const [userName, setUserName] = useState("Loading...");
+const [loggingOut, setLoggingOut] = useState(false);
+
+const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+const [openMobileMenu, setOpenMobileMenu] = useState<string | null>(null);
+const [userRole, setUserRole] = useState<string | null>(null);
+
+useEffect(() => {
+  let active = true;
+
+  async function loadUserName() {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (!active) return;
+
+    if (authError || !user) {
+      router.replace("/login");
+      return;
+    }
+
+    const { data: roles, error: roleError } =
+      await supabase.rpc("get_my_role");
+
+    if (!active) return;
+
+    if (roleError || !roles?.length) {
+      setUserName(user.email ?? "User");
+      return;
+    }
+
+    const profile = roles[0];
+    setUserRole(profile.role);
+
+    if (profile.role === "branch_manager" && profile.employee_id) {
+      const { data: employee, error } = await supabase
+        .from("employees")
+        .select("name")
+        .eq("id", profile.employee_id)
+        .single();
+
+      if (!active) return;
+
+      setUserName(
+        !error && employee?.name
+          ? employee.name
+          : user.email ?? "Branch Manager"
+      );
+    } else if (profile.role === "admin") {
+      setUserName(
+        user.user_metadata?.full_name ?? user.email ?? "Admin"
+      );
+    } else {
+      setUserName(user.email ?? "User");
+    }
+  }
+
+  loadUserName();
+
+  return () => {
+    active = false;
+  };
+}, [router]);
+
+const handleLogout = async () => {
+  if (loggingOut) return;
+
+  setLoggingOut(true);
+
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    setLoggingOut(false);
+    alert("Logout failed. Please try again.");
+    return;
+  }
+
+  router.replace("/login");
+  router.refresh();
+};
+
+
+  
 
   const toggleMobileMenu = (menu: string) => {
     setOpenMobileMenu(
@@ -52,12 +143,17 @@ export default function Navbar() {
             </Link>
 
             {/* MANAGEMENT */}
-            <Link
-              href="/management"
-              className="text-lg font-medium text-white transition hover:text-[#f5b942]"
-            >
-              Management
-            </Link>
+           
+{/* MANAGEMENT - ADMIN ONLY */}
+{userRole === "admin" && (
+  <Link
+    href="/management"
+    className="text-lg font-medium text-white transition hover:text-[#f5b942]"
+  >
+    Management
+  </Link>
+)}
+
 
             {/* TRANSACTION */}
             <div className="group relative">
@@ -254,17 +350,22 @@ export default function Navbar() {
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  className="
-                    mt-1 block w-full rounded-lg
-                    px-4 py-3 text-left
-                    text-base font-medium text-red-600
-                    transition hover:bg-red-50
-                  "
-                >
-                  Logout
-                </button>
+                
+<button
+  type="button"
+  onClick={handleLogout}
+  disabled={loggingOut}
+  className="
+    mt-1 block w-full rounded-lg
+    px-4 py-3 text-left
+    text-base font-medium text-red-600
+    transition hover:bg-red-50
+    disabled:opacity-60
+  "
+>
+  {loggingOut ? "Logging out..." : "Logout"}
+</button>
+
               </div>
 
             </div>
@@ -535,17 +636,21 @@ export default function Navbar() {
             {/* LOGOUT */}
             <div className="border-t border-white/10 pt-2">
 
-              <button
-                type="button"
-                className="
-                  block w-full rounded-lg
-                  px-4 py-3 text-left
-                  text-base font-medium text-red-400
-                  transition hover:bg-red-500/10
-                "
-              >
-                Logout
-              </button>
+              
+<button
+  type="button"
+  onClick={handleLogout}
+  disabled={loggingOut}
+  className="
+    block w-full rounded-lg
+    px-4 py-3 text-left
+    text-base font-medium text-red-400
+    transition hover:bg-red-500/10
+    disabled:opacity-60
+  "
+>
+  {loggingOut ? "Logging out..." : "Logout"}
+</button>
 
             </div>
 

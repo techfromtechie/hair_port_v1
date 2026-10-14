@@ -34,36 +34,80 @@ export default function AddAdvancePage() {
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [employee, setEmployee] = useState("");
+  const [userRole, setUserRole] = useState<
+  "admin" | "branch_manager" | null
+>(null);
+
+const [managerBranchId, setManagerBranchId] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // =========================
-  // FETCH EMPLOYEES
-  // =========================
+ 
+  
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
         setLoading(true);
 
-        const { data, error } = await supabase
-          .from("employees")
-          .select(`
-            id,
-            name,
-            branch_id
-          `)
-          .order("name", {
-            ascending: true,
-          });
+        // 1. Logged-in user ka role check karo
+        const { data: roleData, error: roleError } =
+          await supabase.rpc("get_my_role");
 
-        if (error) {
-          console.error("Employee fetch error:", error);
+        if (roleError) throw roleError;
 
-          toast.error("Failed to load employees.");
+        const profile = Array.isArray(roleData)
+          ? roleData[0]
+          : roleData;
 
-          return;
+        if (
+          !profile ||
+          !["admin", "branch_manager"].includes(profile.role)
+        ) {
+          throw new Error("User role not found.");
         }
+
+        setUserRole(profile.role);
+
+        let branchId = "";
+
+        // 2. Branch manager ki branch ID nikalo
+        if (profile.role === "branch_manager") {
+          if (!profile.employee_id) {
+            throw new Error("Manager employee is not linked.");
+          }
+
+          const { data: manager, error: managerError } =
+            await supabase
+              .from("employees")
+              .select("branch_id")
+              .eq("id", profile.employee_id)
+              .single();
+
+          if (managerError) throw managerError;
+
+          if (!manager?.branch_id) {
+            throw new Error("Manager branch not found.");
+          }
+
+          branchId = manager.branch_id;
+          setManagerBranchId(branchId);
+        }
+
+        // 3. Employees fetch karo
+        let query = supabase
+          .from("employees")
+          .select("id, name, branch_id")
+          .order("name", { ascending: true });
+
+        // Manager ke liye sirf uski branch
+        if (profile.role === "branch_manager") {
+          query = query.eq("branch_id", branchId);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
 
         const formattedEmployees: Employee[] = (data ?? []).map(
           (item) => ({
@@ -75,10 +119,12 @@ export default function AddAdvancePage() {
 
         setEmployees(formattedEmployees);
       } catch (error) {
-        console.error("Unexpected employee error:", error);
+        console.error("Employee fetch error:", error);
 
         toast.error(
-          "Something went wrong while loading employees."
+          error instanceof Error
+            ? error.message
+            : "Failed to load employees."
         );
       } finally {
         setLoading(false);
@@ -87,6 +133,7 @@ export default function AddAdvancePage() {
 
     fetchEmployees();
   }, []);
+
 
   // =========================
   // HANDLE SUBMIT
@@ -325,6 +372,7 @@ export default function AddAdvancePage() {
                   }
                   required
                   name="employee"
+                  disabled={loading || submitting}
                 />
 
                 {/* Advance Amount */}

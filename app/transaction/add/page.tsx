@@ -206,10 +206,7 @@ useEffect(() => {
     // VALIDATION
     // =========================
 
-    if (!service) {
-      toast.error("Please select a service.");
-      return;
-    }
+    
 
     if (!amountValue || amount <= 0) {
       toast.error("Please enter a valid amount.");
@@ -248,7 +245,7 @@ useEffect(() => {
           {
             employee_id: selectedEmployee.id,
             branch_id: selectedEmployee.branchId,
-            service,
+           service: service || null,
             amount,
             payment_mode: paymentMode,
             description: description || null,
@@ -264,20 +261,11 @@ useEffect(() => {
       // SUCCESS
       // =========================
 
-      toast.success("Transaction added successfully!");
+     toast.success("Transaction added successfully!");
 
-      // Reset form safely
-      form.reset();
-      setEmployee("");
-
-      // =========================
-      // GO TO TRANSACTION REPORT
-      // =========================
-
-      setTimeout(() => {
-        router.push("/transaction");
-      }, 700);
-    } catch (error: any) {
+// Reset form and stay on Add Transaction page
+form.reset();
+setEmployee("");    } catch (error: any) {
       console.error("Transaction insert error:", error);
 
       toast.error(
@@ -375,7 +363,7 @@ useEffect(() => {
                   label="Service"
                   placeholder="Select Service"
                   options={services}
-                  required
+                  
                   name="service"
                 />
 

@@ -14,9 +14,7 @@ import {
   IndianRupee,
   Pencil,
   Trash2,
-  X,
-  Save,
-  UserCog,
+  
 } from "lucide-react";
 import Navbar from "@/app/components/Navbar";
 import Loader from "@/app/components/Loader";
@@ -50,12 +48,10 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
-  const [savingManager, setSavingManager] = useState(false);
+  
   const [error, setError] = useState("");
   const [selectedBranch, setSelectedBranch] = useState("");
-  const [managerBranch, setManagerBranch] = useState<Branch | null>(null);
-  const [selectedManagerId, setSelectedManagerId] = useState("");
-  const [managerModalOpen, setManagerModalOpen] = useState(false);
+  
 
   const fetchData = useCallback(async () => {
     try {
@@ -183,61 +179,10 @@ export default function EmployeesPage() {
       );
     }
   };
-    const openManagerModal = (branch: Branch) => {
-    setManagerBranch(branch);
-    setSelectedManagerId(branch.managerEmployeeId ?? "");
-    setManagerModalOpen(true);
-  };
+  
 
   
-const handleSaveManager = async () => {
-  if (!managerBranch) return;
 
-  if (selectedManagerId) {
-    const candidate = employees.find(
-      (employee) => employee.id === selectedManagerId
-    );
-
-    if (!candidate) {
-      toast.error("Please select a valid employee.");
-      return;
-    }
-  }
-
-  try {
-    setSavingManager(true);
-
-    const { error: updateError } = await supabase
-      .from("branches")
-      .update({
-        manager_employee_id: selectedManagerId || null,
-      })
-      .eq("id", managerBranch.id);
-
-    if (updateError) throw updateError;
-
-    toast.success(
-      selectedManagerId
-        ? "Branch manager updated successfully."
-        : "Branch manager removed successfully."
-    );
-
-    setManagerModalOpen(false);
-    setManagerBranch(null);
-
-    await fetchData();
-  } catch (err) {
-    console.error("Manager update error:", err);
-
-    toast.error(
-      err instanceof Error
-        ? err.message
-        : "Could not update branch manager."
-    );
-  } finally {
-    setSavingManager(false);
-  }
-};
 
 
   const formatDate = (date: string) => {
@@ -260,17 +205,6 @@ const handleSaveManager = async () => {
     (total, employee) => total + employee.salary,
     0
   );
-
-  
-
-const managerOptions = useMemo(() => {
-  if (!managerBranch) return [];
-
-  return employees
-    .filter((employee) => employee.branchId === managerBranch.id)
-    .sort((a, b) => a.name.localeCompare(b.name));
-}, [employees, managerBranch]);
-
 
 
   return (
@@ -332,81 +266,7 @@ const managerOptions = useMemo(() => {
               </div>
             )}
 
-            {/* BRANCH MANAGER MANAGEMENT */}
-            <section className="mb-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm md:p-6">
-              <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#fff9eb] text-[#a86f00]">
-                  <UserCog className="h-5 w-5" />
-                </div>
-
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">
-                    Branch Managers
-                  </h2>
-
-                  <p className="text-sm text-gray-500">
-                    Assign, change, or remove the manager for each branch.
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {branches.map((branch) => {
-                  const manager = employees.find(
-                    (employee) =>
-                      employee.id === branch.managerEmployeeId
-                  );
-
-                  return (
-                    <div
-                      key={branch.id}
-                      className="rounded-xl border border-gray-200 p-4"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
-                          <Building2 className="h-5 w-5" />
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-bold text-gray-900">
-                            {branch.name}
-                          </h3>
-
-                          <p className="mt-1 text-sm text-gray-500">
-                            {branch.location || "Branch location not set"}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 rounded-lg bg-gray-50 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                          Current Manager
-                        </p>
-
-                        <p className="mt-1 font-semibold text-gray-900">
-                          {manager?.name ?? "Not assigned"}
-                        </p>
-
-                        {manager && (
-                          <p className="mt-1 text-xs text-gray-500">
-                            {manager.jobPosition}
-                          </p>
-                        )}
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => openManagerModal(branch)}
-                        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#17191d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        {manager ? "Change Manager" : "Assign Manager"}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
+            
                         {/* EMPLOYEE FILTER */}
             <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -644,109 +504,8 @@ const managerOptions = useMemo(() => {
           </div>
         </section>
       )}
-            {/* CHANGE MANAGER MODAL */}
-      {managerModalOpen && managerBranch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  {managerBranch.managerEmployeeId
-                    ? "Change Branch Manager"
-                    : "Assign Branch Manager"}
-                </h2>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  {managerBranch.name}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setManagerModalOpen(false)}
-                className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
-                aria-label="Close dialog"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mt-6">
-              <label className="mb-2 block text-sm font-semibold text-gray-700">
-                Select Manager
-              </label>
-
-              
-
-<select
-  value={selectedManagerId}
-  onChange={(event) =>
-    setSelectedManagerId(event.target.value)
-  }
-  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-700 outline-none focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
->
-  <option value="">No manager assigned</option>
-
-  {managerOptions.map((employee) => (
-    <option key={employee.id} value={employee.id}>
-      {employee.name} — {employee.jobPosition}
-    </option>
-  ))}
-</select>
-
-{managerOptions.length === 0 && (
-  <p className="mt-2 text-sm text-amber-700">
-    Is branch mein abhi koi employee available nahi hai.
-  </p>
-)}
-
-<p className="mt-2 text-xs text-gray-500">
-  Only employees belonging to {managerBranch.name} are shown.
-</p>
-
-
-<p className="mt-2 text-xs text-gray-500">
-  All employees are listed. Selecting an employee assigns them
-  as this branch's manager without changing their current branch.
-</p>
-
-
-              {managerOptions.length === 0 && (
-                <p className="mt-2 text-sm text-amber-700">
-                  This branch has no employee with Job Position
-                  &quot;Salon Manager&quot;. Add or edit an employee first.
-                </p>
-              )}
-
-              <p className="mt-2 text-xs text-gray-500">
-                Only employees in this branch whose Job Position is exactly
-                &quot;Salon Manager&quot; are listed.
-              </p>
-            </div>
-
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setManagerModalOpen(false)}
-                disabled={savingManager}
-                className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={() => void handleSaveManager()}
-                disabled={savingManager}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#17191d] px-5 py-2.5 text-sm font-semibold text-white hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Save className="h-4 w-4" />
-                {savingManager ? "Saving..." : "Save Manager"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+           
+      
     </main>
   );
 }

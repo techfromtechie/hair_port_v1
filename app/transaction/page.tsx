@@ -44,6 +44,8 @@ export default function TransactionReportPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [userRole, setUserRole] = useState<"admin" | "branch_manager" | null>(null);
+const [managerBranchId, setManagerBranchId] = useState("");
 
   const [loading, setLoading] = useState(true);
 
@@ -61,118 +63,174 @@ export default function TransactionReportPage() {
   // FETCH ALL DATA
   // =========================
 
-  const fetchTransactionData = async () => {
-    try {
-      setLoading(true);
+  
+const fetchTransactionData = async () => {
+  try {
+    setLoading(true);
 
-      const [
-        { data: employeeData, error: employeeError },
-        { data: branchData, error: branchError },
-        { data: transactionData, error: transactionError },
-      ] = await Promise.all([
-        supabase
-          .from("employees")
-          .select("id, name, branch_id")
-          .order("name", { ascending: true }),
+    // 1. Get logged-in user's role
+    const { data: roles, error: roleError } =
+      await supabase.rpc("get_my_role");
 
-        supabase
-          .from("branches")
-          .select("id, name")
-          .order("name", { ascending: true }),
+    if (roleError) throw roleError;
 
-        supabase
-          .from("transactions")
-          .select(`
-            id,
-            employee_id,
-            branch_id,
-            service,
-            amount,
-            payment_mode,
-            cash,
-            online,
-            other,
-            description,
-            transaction_date,
-            created_at
-          `)
-          .order("created_at", { ascending: false }),
-      ]);
+    const profile = roles?.[0];
 
-      if (employeeError) throw employeeError;
-      if (branchError) throw branchError;
-      if (transactionError) throw transactionError;
-
-      const formattedEmployees: Employee[] = (employeeData || []).map(
-        (employee: any) => ({
-          id: employee.id,
-          name: employee.name,
-          branchId: employee.branch_id,
-        })
-      );
-
-      const formattedBranches: Branch[] = (branchData || []).map(
-        (branch: any) => ({
-          id: branch.id,
-          name: branch.name,
-        })
-      );
-
-      // =========================
-      // FORMAT TRANSACTIONS
-      // =========================
-
-      const formattedTransactions: Transaction[] = (
-        transactionData || []
-      ).map((transaction: any) => {
-        const employee = formattedEmployees.find(
-          (item) => item.id === transaction.employee_id
-        );
-
-        const branch = formattedBranches.find(
-          (item) => item.id === transaction.branch_id
-        );
-
-        const amount = Number(transaction.amount || 0);
-        const paymentMode = transaction.payment_mode || "Other";
-
-        return {
-          id: transaction.id,
-          employeeId: transaction.employee_id,
-          branchId: transaction.branch_id,
-
-          employee: employee?.name || "Unknown Employee",
-          branch: branch?.name || "Unknown Branch",
-
-          service: transaction.service || "",
-
-          amount: amount,
-
-          paymentMode: paymentMode as PaymentMode,
-
-          description: transaction.description || "",
-
-          date: transaction.transaction_date,
-
-          cash: paymentMode === "Cash" ? amount : 0,
-          online: paymentMode === "Online" ? amount : 0,
-          other: paymentMode === "Other" ? amount : 0,
-        };
-      });
-
-      setEmployees(formattedEmployees);
-      setBranches(formattedBranches);
-      setTransactions(formattedTransactions);
-    } catch (error: any) {
-      console.error("Transaction fetch error:", error);
-
-      toast.error(
-        error?.message || "Failed to load transaction data."
-      );
-    } finally {
-      setLoading(false);
+    if (!profile) {
+      throw new Error("User role not found. Please contact Admin.");
     }
-  };
+
+    if (
+      profile.role !== "admin" &&
+      profile.role !== "branch_manager"
+    ) {
+      throw new Error("You are not authorized to view transactions.");
+    }
+
+    setUserRole(profile.role);
+
+    let branchId = "";
+
+    // 2. Find Branch Manager's assigned branch
+    if (profile.role === "branch_manager") {
+      if (!profile.employee_id) {
+        throw new Error("Manager employee record not found.");
+      }
+
+      const { data: manager, error: managerError } =
+        await supabase
+          .from("employees")
+          .select("branch_id")
+          .eq("id", profile.employee_id)
+          .single();
+
+      if (managerError) throw managerError;
+
+      if (!manager?.branch_id) {
+        throw new Error("Manager branch not found.");
+      }
+
+      branchId = manager.branch_id;
+
+      setManagerBranchId(branchId);
+      setSelectedBranch(branchId);
+    } else {
+      setManagerBranchId("");
+    }
+
+    // 3. Prepare queries according to role
+    let employeeQuery = supabase
+      .from("employees")
+      .select("id, name, branch_id")
+      .order("name", { ascending: true });
+
+    let branchQuery = supabase
+      .from("branches")
+      .select("id, name")
+      .order("name", { ascending: true });
+
+    let transactionQuery = supabase
+      .from("transactions")
+      .select(`
+        id,
+        employee_id,
+        branch_id,
+        service,
+        amount,
+        payment_mode,
+        cash,
+        online,
+        other,
+        description,
+        transaction_date,
+        created_at
+      `)
+      .order("created_at", { ascending: false });
+
+    // 4. Restrict queries to the manager's branch
+    if (profile.role === "branch_manager") {
+      employeeQuery = employeeQuery.eq("branch_id", branchId);
+      branchQuery = branchQuery.eq("id", branchId);
+      transactionQuery = transactionQuery.eq("branch_id", branchId);
+    }
+
+    // 5. Fetch only permitted data
+    const [
+      { data: employeeData, error: employeeError },
+      { data: branchData, error: branchError },
+      { data: transactionData, error: transactionError },
+    ] = await Promise.all([
+      employeeQuery,
+      branchQuery,
+      transactionQuery,
+    ]);
+
+    if (employeeError) throw employeeError;
+    if (branchError) throw branchError;
+    if (transactionError) throw transactionError;
+
+    const formattedEmployees: Employee[] = (employeeData || []).map(
+      (employee) => ({
+        id: employee.id,
+        name: employee.name,
+        branchId: employee.branch_id,
+      })
+    );
+
+    const formattedBranches: Branch[] = (branchData || []).map(
+      (branch) => ({
+        id: branch.id,
+        name: branch.name,
+      })
+    );
+
+    const formattedTransactions: Transaction[] = (
+      transactionData || []
+    ).map((transaction) => {
+      const employee = formattedEmployees.find(
+        (item) => item.id === transaction.employee_id
+      );
+
+      const branch = formattedBranches.find(
+        (item) => item.id === transaction.branch_id
+      );
+
+      const amount = Number(transaction.amount || 0);
+      const paymentMode = transaction.payment_mode || "Other";
+
+      return {
+        id: transaction.id,
+        employeeId: transaction.employee_id,
+        branchId: transaction.branch_id,
+        employee: employee?.name || "Unknown Employee",
+        branch: branch?.name || "Unknown Branch",
+        service: transaction.service || "",
+        amount,
+        paymentMode: paymentMode as PaymentMode,
+        description: transaction.description || "",
+        date: transaction.transaction_date,
+        cash: paymentMode === "Cash" ? amount : 0,
+        online: paymentMode === "Online" ? amount : 0,
+        other: paymentMode === "Other" ? amount : 0,
+      };
+    });
+
+    setEmployees(formattedEmployees);
+    setBranches(formattedBranches);
+    setTransactions(formattedTransactions);
+  } catch (error: unknown) {
+    console.error("Transaction fetch error:", error);
+
+    toast.error(
+      error instanceof Error
+        ? error.message
+        : "Failed to load transaction data."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     fetchTransactionData();
@@ -182,11 +240,13 @@ export default function TransactionReportPage() {
   // =========================
 
   const resetFilters = () => {
-    setSelectedEmployee("");
-    setSelectedBranch("");
-    setFromDate("");
-    setToDate("");
-  };
+  setSelectedEmployee("");
+  setSelectedBranch(
+    userRole === "branch_manager" ? managerBranchId : ""
+  );
+  setFromDate("");
+  setToDate("");
+};
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -594,14 +654,15 @@ export default function TransactionReportPage() {
 
                     <select
                       value={selectedBranch}
+                      disabled={userRole === "branch_manager"}
                       onChange={(e) =>
                         setSelectedBranch(e.target.value)
                       }
                       className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
                     >
-                      <option value="">
-                        All Branches
-                      </option>
+                      {userRole === "admin" && (
+  <option value="">All Branches</option>
+)}
 
                       {branches.map((branch) => (
                         <option

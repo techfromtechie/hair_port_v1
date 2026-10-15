@@ -44,7 +44,7 @@ type LeaveRecord = {
 type Leave = {
   id: string;
   employee: string;
-  employeeNumber: string;
+  
   branch: string;
   date: string;
   leaveType: string;
@@ -123,7 +123,7 @@ export default function AdminLeavesPage() {
           return {
             id: String(leave.id),
             employee: employee?.name ?? "Unknown Employee",
-            employeeNumber: employee?.employee_number ?? "N/A",
+            
             branch: branch?.name ?? "Unknown Branch",
             date: String(leave.leave_date).split("T")[0],
             leaveType: leave.leave_type,
@@ -208,7 +208,7 @@ export default function AdminLeavesPage() {
 
   const leaveExportData = filteredLeaves.map((leave) => ({
     employee: leave.employee,
-    employeeNumber: leave.employeeNumber,
+    
     branch: leave.branch,
     date: leave.date,
     leaveType: leave.leaveType,
@@ -375,7 +375,7 @@ export default function AdminLeavesPage() {
                   data={leaveExportData}
                   columns={[
                     { header: "Employee", key: "employee" },
-                    { header: "Employee No", key: "employeeNumber" },
+                    
                     { header: "Branch", key: "branch" },
                     { header: "Date", key: "date" },
                     { header: "Leave Type", key: "leaveType" },
@@ -404,11 +404,11 @@ export default function AdminLeavesPage() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[850px]">
+              <table className="w-full min-w-full table-auto">
                 <thead>
                   <tr className="bg-[#17191d] text-left text-sm text-white">
                     <th className="px-6 py-4 font-semibold">Employee</th>
-                    <th className="px-6 py-4 font-semibold">Employee No</th>
+                   
                     <th className="px-6 py-4 font-semibold">Branch</th>
                     <th className="px-6 py-4 font-semibold">Leave Date</th>
                     <th className="px-6 py-4 font-semibold">Leave Type</th>
@@ -453,9 +453,7 @@ export default function AdminLeavesPage() {
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          {leave.employeeNumber}
-                        </td>
+                       
 
                         <td className="px-6 py-4">
                           <span className="inline-flex items-center gap-2 text-sm text-gray-700">

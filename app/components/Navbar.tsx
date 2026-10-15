@@ -436,19 +436,23 @@ const handleLogout = async () => {
               Home
             </Link>
 
-            {/* MANAGEMENT */}
-            <Link
-              href="/management"
-              onClick={() => setMobileMenuOpen(false)}
-              className="
-                block rounded-lg px-4 py-3
-                text-base font-medium text-white
-                transition hover:bg-white/10
-                hover:text-[#f5b942]
-              "
-            >
-              Management
-            </Link>
+            
+{/* MANAGEMENT - ADMIN ONLY */}
+{userRole === "admin" && (
+  <Link
+    href="/management"
+    onClick={() => setMobileMenuOpen(false)}
+    className="
+      block rounded-lg px-4 py-3
+      text-base font-medium text-white
+      transition hover:bg-white/10
+      hover:text-[#f5b942]
+    "
+  >
+    Management
+  </Link>
+)}
+
 
             {/* TRANSACTION */}
             <div className="border-t border-white/10">

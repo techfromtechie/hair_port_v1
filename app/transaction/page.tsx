@@ -658,7 +658,7 @@ const fetchTransactionData = async () => {
                       onChange={(e) =>
                         setSelectedBranch(e.target.value)
                       }
-                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20 disabled:cursor-not-allowed disabled:bg-gray-100"
                     >
                       {userRole === "admin" && (
   <option value="">All Branches</option>

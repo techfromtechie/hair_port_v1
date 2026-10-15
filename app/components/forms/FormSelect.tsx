@@ -13,6 +13,7 @@ type FormSelectProps = {
   onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   required?: boolean;
   name?: string;
+  disabled?: boolean;
 };
 
 export default function FormSelect({
@@ -23,12 +24,15 @@ export default function FormSelect({
   onChange,
   required = false,
   name,
+  disabled = false,
 }: FormSelectProps) {
   return (
     <div className="flex flex-col gap-2">
       <label className="text-sm font-medium text-gray-700">
         {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
+        {required && (
+          <span className="ml-1 text-red-500">*</span>
+        )}
       </label>
 
       <select
@@ -36,7 +40,8 @@ export default function FormSelect({
         value={value}
         onChange={onChange}
         required={required}
-        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20"
+        disabled={disabled}
+        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-[#f5b942] focus:ring-2 focus:ring-[#f5b942]/20 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
       >
         <option value="">
           {placeholder || `Select ${label}`}

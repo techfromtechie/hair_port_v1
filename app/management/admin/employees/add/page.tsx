@@ -27,7 +27,7 @@ const genderOptions: SelectOption[] = [
 // Job Position dropdown options
 // "Salon Manager" spelling is important for the manager assignment feature.
 const positionOptions: SelectOption[] = [
-  { label: "Salon Manager", value: "Salon Manager" },
+
   { label: "Assistant Manager", value: "Assistant Manager" },
   { label: "Hair Stylist", value: "Hair Stylist" },
   { label: "Barber", value: "Barber" },
@@ -288,7 +288,7 @@ export default function AddEmployeePage() {
                 value={jobPosition}
                 onChange={(e) => setJobPosition(e.target.value)}
                 options={[
-                  { label: "Select Job Position", value: "" },
+                  // { label: "Select Job Position", value: "" },
                   ...positionOptions,
                 ]}
                 required

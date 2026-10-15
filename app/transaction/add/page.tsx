@@ -76,46 +76,94 @@ export default function AddTransactionPage() {
   // FETCH EMPLOYEES
   // =========================
 
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        setLoadingEmployees(true);
+  
+useEffect(() => {
+  let active = true;
 
-        const { data, error } = await supabase
-          .from("employees")
-          .select(`
-            id,
-            name,
-            branch_id
-          `)
-          .order("name", { ascending: true });
+  const fetchEmployees = async () => {
+    try {
+      setLoadingEmployees(true);
 
-        if (error) {
-          throw error;
+      // Step 1: Get the logged-in user's role
+      const { data: roles, error: roleError } =
+        await supabase.rpc("get_my_role");
+
+      if (roleError) throw roleError;
+
+      const profile = roles?.[0];
+
+      if (!profile) {
+        throw new Error("User role not found.");
+      }
+
+      // Step 2: Start the employee query
+      let query = supabase
+        .from("employees")
+        .select("id, name, branch_id")
+        .order("name", { ascending: true });
+
+      // Step 3: Branch Manager can see only their branch
+      if (profile.role === "branch_manager") {
+        if (!profile.employee_id) {
+          throw new Error("Manager employee record not found.");
         }
 
-        const formattedEmployees: Employee[] = (data || []).map(
-          (item: any) => ({
-            id: item.id,
-            name: item.name,
-            branchId: item.branch_id,
-          })
-        );
+        const { data: manager, error: managerError } =
+          await supabase
+            .from("employees")
+            .select("branch_id")
+            .eq("id", profile.employee_id)
+            .single();
 
-        setEmployees(formattedEmployees);
-      } catch (error: any) {
-        console.error("Employee fetch error:", error);
+        if (managerError) throw managerError;
 
-        toast.error(
-          error?.message || "Failed to load employees."
-        );
-      } finally {
-        setLoadingEmployees(false);
+        if (!manager?.branch_id) {
+          throw new Error("Manager branch not found.");
+        }
+
+        query = query.eq("branch_id", manager.branch_id);
+      } else if (profile.role !== "admin") {
+        throw new Error("You are not authorized to view employees.");
       }
-    };
 
-    fetchEmployees();
-  }, []);
+      // Step 4: Fetch permitted employees
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      if (!active) return;
+
+      const formattedEmployees: Employee[] = (data || []).map(
+        (item) => ({
+          id: item.id,
+          name: item.name,
+          branchId: item.branch_id,
+        })
+      );
+
+      setEmployees(formattedEmployees);
+    } catch (error: unknown) {
+      console.error("Employee fetch error:", error);
+
+      if (active) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to load employees."
+        );
+      }
+    } finally {
+      if (active) setLoadingEmployees(false);
+    }
+  };
+
+  fetchEmployees();
+
+  return () => {
+    active = false;
+  };
+}, []);
+
 
   // =========================
   // SUBMIT TRANSACTION

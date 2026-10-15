@@ -40,12 +40,22 @@ type Transaction = {
   other: number;
 };
 
+type AdvancePayment = {
+  id: string;
+  employeeId: string;
+  branchId: string;
+  cash: number;
+  online: number;
+  date: string;
+};
+
 export default function TransactionReportPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [advances, setAdvances] = useState<AdvancePayment[]>([]);
   const [userRole, setUserRole] = useState<"admin" | "branch_manager" | null>(null);
-const [managerBranchId, setManagerBranchId] = useState("");
+  const [managerBranchId, setManagerBranchId] = useState("");
 
   const [loading, setLoading] = useState(true);
 
@@ -56,8 +66,17 @@ const [managerBranchId, setManagerBranchId] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [selectedBranch, setSelectedBranch] = useState("");
 
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  const getLocalDateString = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const [fromDate, setFromDate] = useState(getLocalDateString);
+const [toDate, setToDate] = useState(getLocalDateString);
 
   // =========================
   // FETCH ALL DATA
@@ -147,27 +166,44 @@ const fetchTransactionData = async () => {
       `)
       .order("created_at", { ascending: false });
 
+      let advanceQuery = supabase
+  .from("advance_payments")
+  .select(`
+    id,
+    employee_id,
+    branch_id,
+    cash,
+    online,
+    advance_date,
+    created_at
+  `)
+  .order("advance_date", { ascending: false });
+
     // 4. Restrict queries to the manager's branch
     if (profile.role === "branch_manager") {
       employeeQuery = employeeQuery.eq("branch_id", branchId);
       branchQuery = branchQuery.eq("id", branchId);
       transactionQuery = transactionQuery.eq("branch_id", branchId);
+      advanceQuery = advanceQuery.eq("branch_id", branchId);
     }
 
     // 5. Fetch only permitted data
-    const [
-      { data: employeeData, error: employeeError },
-      { data: branchData, error: branchError },
-      { data: transactionData, error: transactionError },
-    ] = await Promise.all([
-      employeeQuery,
-      branchQuery,
-      transactionQuery,
-    ]);
+   const [
+  { data: employeeData, error: employeeError },
+  { data: branchData, error: branchError },
+  { data: transactionData, error: transactionError },
+  { data: advanceData, error: advanceError },
+] = await Promise.all([
+  employeeQuery,
+  branchQuery,
+  transactionQuery,
+  advanceQuery,
+]);
 
     if (employeeError) throw employeeError;
     if (branchError) throw branchError;
     if (transactionError) throw transactionError;
+    if (advanceError) throw advanceError;
 
     const formattedEmployees: Employee[] = (employeeData || []).map(
       (employee) => ({
@@ -215,9 +251,21 @@ const fetchTransactionData = async () => {
       };
     });
 
+    const formattedAdvances: AdvancePayment[] = (advanceData || []).map(
+      (item) => ({
+        id: item.id,
+        employeeId: item.employee_id,
+        branchId: item.branch_id,
+        cash: Number(item.cash || 0),
+        online: Number(item.online || 0),
+        date: item.advance_date,
+      })
+    );
+
     setEmployees(formattedEmployees);
     setBranches(formattedBranches);
     setTransactions(formattedTransactions);
+    setAdvances(formattedAdvances);
   } catch (error: unknown) {
     console.error("Transaction fetch error:", error);
 
@@ -239,16 +287,16 @@ const fetchTransactionData = async () => {
   // RESET FILTERS
   // =========================
 
-  const resetFilters = () => {
+ const resetFilters = () => {
   setSelectedEmployee("");
   setSelectedBranch(
     userRole === "branch_manager" ? managerBranchId : ""
   );
-  setFromDate("");
-  setToDate("");
+  setFromDate(getLocalDateString());
+  setToDate(getLocalDateString());
 };
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateString();
 
   // =========================
   // BRANCH COLORS
@@ -334,6 +382,42 @@ const fetchTransactionData = async () => {
     toDate,
   ]);
 
+  const filteredAdvances = useMemo(() => {
+  return advances.filter((advance) => {
+    const matchesEmployee =
+      reportType === "employee"
+        ? !selectedEmployee ||
+          advance.employeeId === selectedEmployee
+        : true;
+
+    const matchesBranch =
+      reportType === "branch"
+        ? !selectedBranch ||
+          advance.branchId === selectedBranch
+        : true;
+
+    const matchesFromDate =
+      !fromDate || advance.date >= fromDate;
+
+    const matchesToDate =
+      !toDate || advance.date <= toDate;
+
+    return (
+      matchesEmployee &&
+      matchesBranch &&
+      matchesFromDate &&
+      matchesToDate
+    );
+  });
+}, [
+  advances,
+  reportType,
+  selectedEmployee,
+  selectedBranch,
+  fromDate,
+  toDate,
+]);
+
   // =========================
   // TOTAL CALCULATIONS
   // =========================
@@ -360,6 +444,20 @@ const fetchTransactionData = async () => {
     totalCash +
     totalOnline +
     totalOther;
+
+  // Advance totals for the selected employee/branch and date range
+  const totalAdvanceCash = filteredAdvances.reduce(
+    (total, advance) => total + advance.cash,
+    0
+  );
+
+  const totalAdvanceOnline = filteredAdvances.reduce(
+    (total, advance) => total + advance.online,
+    0
+  );
+
+  const totalAdvancePayment = totalAdvanceCash + totalAdvanceOnline;
+  const remainingPayment = totalPayment - totalAdvancePayment;
 
   // =========================
   // EXPORT DATA
@@ -713,12 +811,7 @@ const fetchTransactionData = async () => {
 
               <div className="mt-5 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
                 <p className="text-sm text-gray-600">
-                  {!selectedEmployee &&
-                  !selectedBranch &&
-                  !fromDate &&
-                  !toDate
-                    ? "Showing latest transactions. Use filters to view specific transaction history."
-                    : "Showing transactions based on the selected filters."}
+                  {`Showing transactions and advance payments from ${fromDate.split("-").reverse().join("/")} to ${toDate.split("-").reverse().join("/")}.`}
                 </p>
               </div>
 
@@ -1063,7 +1156,7 @@ const fetchTransactionData = async () => {
 
               </div>
 
-              <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2 xl:grid-cols-3">
 
                 {/* CASH */}
                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
@@ -1107,21 +1200,48 @@ const fetchTransactionData = async () => {
                   </p>
                 </div>
 
-                {/* TOTAL */}
+                {/* TOTAL TRANSACTION PAYMENT */}
                 <div className="rounded-xl border border-[#f5b942] bg-[#fff9eb] p-5">
                   <p className="text-sm font-medium text-gray-600">
-                    Total Payment
+                    Total Transaction Payment
                   </p>
-
                   <p className="mt-2 text-3xl font-bold text-gray-900">
-                    ₹
-                    {totalPayment.toLocaleString(
-                      "en-IN"
-                    )}
+                    ₹{totalPayment.toLocaleString("en-IN")}
                   </p>
-
                   <p className="mt-1 text-xs text-gray-500">
                     Cash + Online + Other
+                  </p>
+                </div>
+
+                {/* TOTAL ADVANCE PAYMENT */}
+                <div className="rounded-xl border border-orange-200 bg-orange-50 p-5">
+                  <p className="text-sm font-medium text-orange-800">
+                    Total Advance Payment
+                  </p>
+                  <p className="mt-2 text-2xl font-bold text-gray-900">
+                    ₹{totalAdvancePayment.toLocaleString("en-IN")}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-600">
+                    Advance Cash + Online
+                  </p>
+                </div>
+
+                {/* REMAINING PAYMENT */}
+                <div className={`rounded-xl border p-5 ${
+                  remainingPayment < 0
+                    ? "border-red-200 bg-red-50"
+                    : "border-green-200 bg-green-50"
+                }`}>
+                  <p className={`text-sm font-medium ${
+                    remainingPayment < 0 ? "text-red-800" : "text-green-800"
+                  }`}>
+                    Remaining Payment
+                  </p>
+                  <p className="mt-2 text-3xl font-bold text-gray-900">
+                    ₹{remainingPayment.toLocaleString("en-IN")}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-600">
+                    Transaction Total − Advance Total
                   </p>
                 </div>
 
